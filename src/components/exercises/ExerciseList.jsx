@@ -4,9 +4,6 @@ export default function ExerciseList({
   exercises,
   currentIndex,
   onSelect,
-  repTargets,
-  onRepChange,
-  onResetAllReps, // nhận prop mới
 }) {
   const [expandedCategories, setExpandedCategories] = useState({});
 
@@ -21,12 +18,6 @@ export default function ExerciseList({
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
-  const handleRepChange = (exId, delta) => {
-    const current = repTargets[exId] || 10;
-    const newVal = Math.max(1, Math.min(50, current + delta));
-    onRepChange(exId, newVal);
-  };
-
   return (
     <div className="flex flex-col gap-4 h-full">
       <div className="flex items-center justify-between px-2">
@@ -34,17 +25,7 @@ export default function ExerciseList({
           <i className="fa-solid fa-list-check text-emerald-400"></i>
           Lộ trình tập
         </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">{exercises.length} bài</span>
-          {/* Nút Reset */}
-          <button
-            onClick={onResetAllReps}
-            className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded-lg transition flex items-center gap-1"
-            title="Reset tất cả reps về mặc định"
-          >
-            <i className="fa-solid fa-rotate-left"></i> Reset Reps
-          </button>
-        </div>
+        <span className="text-xs text-slate-500">{exercises.length} bài</span>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2 max-h-[600px] scrollbar-thin scrollbar-thumb-slate-700">
@@ -62,7 +43,6 @@ export default function ExerciseList({
                 {grouped[cat].map((ex) => {
                   const idx = exercises.indexOf(ex);
                   const isActive = currentIndex === idx;
-                  const repCount = repTargets[ex.id] ?? ex.reps ?? 10;
                   return (
                     <div
                       key={ex.id}
@@ -83,22 +63,6 @@ export default function ExerciseList({
                           </span>
                         </div>
                         <span className="text-xs text-slate-500">{ex.duration}s</span>
-                      </div>
-                      <div className="flex items-center gap-3 pl-9" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-xs text-slate-400">Reps:</span>
-                        <button
-                          className="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs"
-                          onClick={() => handleRepChange(ex.id, -1)}
-                        >
-                          -
-                        </button>
-                        <span className="text-sm font-bold text-emerald-400 min-w-[20px] text-center">{repCount}</span>
-                        <button
-                          className="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white text-xs"
-                          onClick={() => handleRepChange(ex.id, 1)}
-                        >
-                          +
-                        </button>
                       </div>
                     </div>
                   );
