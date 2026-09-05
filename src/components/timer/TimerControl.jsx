@@ -6,6 +6,7 @@ export default function TimerControl({
   onStart,
   onPause,
   onReset,
+  onResetAndStart, // mới
 }) {
   const percent = total > 0 ? (timeLeft / total) * 100 : 0;
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
@@ -15,16 +16,28 @@ export default function TimerControl({
   let buttonIcon = 'fa-play';
   let buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
   let isDisabled = false;
+  let onClick = onStart;
 
   if (isRunning) {
     buttonLabel = 'Tạm dừng';
     buttonIcon = 'fa-pause';
     buttonClass = 'bg-amber-500 hover:bg-amber-400 text-slate-900';
+    onClick = onPause;
   } else if (isCompleted) {
     buttonLabel = 'Bắt đầu lại';
     buttonIcon = 'fa-rotate-right';
     buttonClass = 'bg-blue-500 hover:bg-blue-400 text-white';
-    isDisabled = false;
+    onClick = onResetAndStart; // reset + start
+  } else if (timeLeft < total && timeLeft > 0) {
+    buttonLabel = 'Tiếp tục';
+    buttonIcon = 'fa-play';
+    buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
+    onClick = onStart; // chỉ tiếp tục, không reset
+  } else {
+    buttonLabel = 'Bắt đầu';
+    buttonIcon = 'fa-play';
+    buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
+    onClick = onStart;
   }
 
   return (
@@ -51,7 +64,7 @@ export default function TimerControl({
 
         <div className="flex gap-3 w-full md:w-auto">
           <button
-            onClick={isRunning ? onPause : onStart}
+            onClick={onClick}
             disabled={isDisabled}
             className={`flex-1 md:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] ${buttonClass}`}
           >

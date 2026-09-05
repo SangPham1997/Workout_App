@@ -26,6 +26,11 @@ function App() {
   const handlePause = () => pauseTimer();
   const handleReset = () => fullReset();
 
+  const handleResetAndStart = () => {
+    fullReset();
+    startTimer();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
       <Header />
@@ -60,6 +65,7 @@ function App() {
             onStart={handleStart}
             onPause={handlePause}
             onReset={handleReset}
+            onResetAndStart={handleResetAndStart}
           />
 
           <TechniqueGuide guide={selectedExercise.guide} />

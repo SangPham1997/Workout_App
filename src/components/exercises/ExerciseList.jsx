@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ExerciseItem from './ExerciseItem';
 
 export default function ExerciseList({
   exercises,
@@ -42,29 +43,13 @@ export default function ExerciseList({
               <div className="divide-y divide-slate-700/30">
                 {grouped[cat].map((ex) => {
                   const idx = exercises.indexOf(ex);
-                  const isActive = currentIndex === idx;
                   return (
-                    <div
+                    <ExerciseItem
                       key={ex.id}
-                      className={`p-3 transition cursor-pointer flex flex-col gap-1 ${
-                        isActive ? 'bg-emerald-900/20 border-l-4 border-emerald-500' : 'hover:bg-slate-800/30'
-                      }`}
-                      onClick={() => onSelect(idx)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                            isActive ? 'bg-emerald-500 text-slate-900' : 'bg-slate-700 text-slate-400'
-                          }`}>
-                            {idx + 1}
-                          </div>
-                          <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-300'}`}>
-                            {ex.name}
-                          </span>
-                        </div>
-                        <span className="text-xs text-slate-500">{ex.duration}s</span>
-                      </div>
-                    </div>
+                      exercise={ex}
+                      currentIndex={currentIndex}
+                      onSelect={onSelect}
+                      idx={idx} />
                   );
                 })}
               </div>

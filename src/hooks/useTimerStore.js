@@ -8,13 +8,28 @@ export const useTimerStore = create((set, get) => ({
   intervalId: null,
 
   startTimer: () => {
-    const { isRunning, isCompleted } = get();
+    const { isRunning, isCompleted, timeLeft: currentTimeLeft } = get();
     if (isRunning || isCompleted) return;
 
     const exercise = useExerciseStore.getState().getSelectedExercise();
     if (!exercise) return;
 
-    set({ isCompleted: false, timeLeft: exercise.duration || 30 });
+    const duration = exercise.duration || 30;
+
+    // Nếu timeLeft đang bằng duration (chưa từng chạy) hoặc đã hoàn thành,
+    // reset về duration. Ngược lại giữ nguyên để tiếp tục.
+    if (currentTimeLeft === duration || isCompleted) {
+      set({ timeLeft: duration, isCompleted: false });
+    } else {
+      set({ isCompleted: false });
+    }
+
+    // Clear interval cũ nếu còn
+    const { intervalId } = get();
+    if (intervalId) {
+      clearInterval(intervalId);
+      set({ intervalId: null });
+    }
 
     const id = setInterval(() => {
       const state = get();
