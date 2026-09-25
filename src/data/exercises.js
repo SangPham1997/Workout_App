@@ -10,6 +10,7 @@ export const exercises = [
     type: 'bicycle',
     svg: 'bicycle',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'absUpper', level: 2 }, { id: 'obliques', level: 2 }, { id: 'absLower', level: 1 }, { id: 'hipFlexors', level: 1 }, { id: 'quadL', level: 1 }, { id: 'quadR', level: 1 } ],
     category: 'Bụng'
   },
   {
@@ -22,6 +23,7 @@ export const exercises = [
     type: 'supine',
     svg: 'supine',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'absLower', level: 2 }, { id: 'hipFlexors', level: 2 }, { id: 'quadL', level: 1 }, { id: 'quadR', level: 1 }, { id: 'absUpper', level: 1 } ],
     category: 'Bụng'
   },
   {
@@ -34,6 +36,7 @@ export const exercises = [
     type: 'reverse',
     svg: 'reverse',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'absLower', level: 2 }, { id: 'hipFlexors', level: 1 }, { id: 'absUpper', level: 1 } ],
     category: 'Bụng'
   },
   {
@@ -46,6 +49,7 @@ export const exercises = [
     type: 'plank',
     svg: 'plank',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 1,             // Plank thường giữ tĩnh, không đếm rep theo chu kỳ
+  muscles: [ { id: 'absUpper', level: 2 }, { id: 'absLower', level: 2 }, { id: 'chestCore', level: 2 }, { id: 'shoulderL', level: 1 }, { id: 'shoulderR', level: 1 }, { id: 'glutes', level: 1 }, { id: 'lowerBack', level: 1 } ],
     category: 'Bụng'
   },
 
@@ -60,6 +64,7 @@ export const exercises = [
     type: 'birddog',
     svg: 'birddog',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'lowerBack', level: 2 }, { id: 'glutes', level: 2 }, { id: 'absUpper', level: 1 }, { id: 'shoulderL', level: 1 }, { id: 'shoulderR', level: 1 } ],
     category: 'Lưng & Cột sống'
   },
   {
@@ -72,6 +77,7 @@ export const exercises = [
     type: 'deadbug',
     svg: 'deadbug',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'absUpper', level: 2 }, { id: 'absLower', level: 2 }, { id: 'lowerBack', level: 1 }, { id: 'hipFlexors', level: 1 } ],
     category: 'Lưng & Cột sống'
   },
   {
@@ -84,6 +90,7 @@ export const exercises = [
     type: 'catcow',
     svg: 'catcow',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'chestCore', level: 2 }, { id: 'lowerBack', level: 2 }, { id: 'neck', level: 1 } ],
     category: 'Lưng & Cột sống'
   },
 
@@ -98,6 +105,7 @@ export const exercises = [
     type: 'climber',
     svg: 'climber',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'absLower', level: 2 }, { id: 'absUpper', level: 1 }, { id: 'shoulderL', level: 2 }, { id: 'shoulderR', level: 2 }, { id: 'hipFlexors', level: 2 }, { id: 'quadL', level: 1 }, { id: 'quadR', level: 1 } ],
     category: 'Toàn thân'
   },
   {
@@ -110,6 +118,7 @@ export const exercises = [
     type: 'standing',
     svg: 'standing',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'obliques', level: 2 }, { id: 'absUpper', level: 2 }, { id: 'hipFlexors', level: 1 }, { id: 'quadL', level: 1 }, { id: 'quadR', level: 1 } ],
     category: 'Toàn thân'
   },
   {
@@ -122,6 +131,7 @@ export const exercises = [
     type: 'squat',
     svg: 'squat',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'quadL', level: 2 }, { id: 'quadR', level: 2 }, { id: 'glutes', level: 2 }, { id: 'hamL', level: 1 }, { id: 'hamR', level: 1 }, { id: 'lowerBack', level: 1 }, { id: 'absUpper', level: 1 } ],
     category: 'Toàn thân'
   },
   {
@@ -134,6 +144,7 @@ export const exercises = [
     type: 'glute-bridge',
     svg: 'glute-bridge',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
+  muscles: [ { id: 'glutes', level: 2 }, { id: 'hamL', level: 2 }, { id: 'hamR', level: 2 }, { id: 'lowerBack', level: 1 }, { id: 'absLower', level: 1 } ],
     category: 'Toàn thân'
   },
 ];

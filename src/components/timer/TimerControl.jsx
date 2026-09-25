@@ -1,3 +1,13 @@
+import CircularTimer from './CircularTimer';
+import { useWakeLock } from '../../hooks/useWakeLock';
+
+/*
+  TimerControl — phiên bản nâng cấp:
+  - Circular Progress SVG thay text timer thuần (giữ số MM:SS ở giữa vòng).
+  - Audio cues bằng Web Audio API: beep khi start/pause, đếm ngược 5..1, hợp âm hoàn thành.
+  - Wake Lock API giữ sáng màn hình khi đang tập.
+  - Nút điều khiển phóng to, hiệu ứng :active thu nhỏ khi bấm.
+*/
 export default function TimerControl({
   timeLeft,
   isRunning,
@@ -6,76 +16,57 @@ export default function TimerControl({
   onStart,
   onPause,
   onReset,
-  onResetAndStart, // mới
 }) {
-  const percent = total > 0 ? (timeLeft / total) * 100 : 0;
-  const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-  const secs = String(timeLeft % 60).padStart(2, '0');
+  // Wake lock chỉ khi đang chạy
+  useWakeLock(isRunning);
 
   let buttonLabel = 'Bắt đầu';
   let buttonIcon = 'fa-play';
-  let buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
-  let isDisabled = false;
+  let buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900 shadow-[0_0_28px_rgba(16,185,129,0.4)]';
   let onClick = onStart;
 
   if (isRunning) {
     buttonLabel = 'Tạm dừng';
     buttonIcon = 'fa-pause';
-    buttonClass = 'bg-amber-500 hover:bg-amber-400 text-slate-900';
+    buttonClass = 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-[0_0_28px_rgba(245,158,11,0.4)]';
     onClick = onPause;
   } else if (isCompleted) {
     buttonLabel = 'Bắt đầu lại';
     buttonIcon = 'fa-rotate-right';
-    buttonClass = 'bg-blue-500 hover:bg-blue-400 text-white';
-    onClick = onResetAndStart; // reset + start
+    buttonClass = 'bg-sky-500 hover:bg-sky-400 text-white shadow-[0_0_28px_rgba(56,189,248,0.4)]';
+    onClick = onStart;
   } else if (timeLeft < total && timeLeft > 0) {
     buttonLabel = 'Tiếp tục';
     buttonIcon = 'fa-play';
-    buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
-    onClick = onStart; // chỉ tiếp tục, không reset
-  } else {
-    buttonLabel = 'Bắt đầu';
-    buttonIcon = 'fa-play';
-    buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
-    onClick = onStart;
   }
 
   return (
     <div className="bg-slate-800/60 backdrop-blur-sm rounded-3xl p-6 border border-slate-700/50 shadow-lg">
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col gap-2 w-full md:w-auto">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
-              <i className="fa-regular fa-clock text-xl"></i>
-            </div>
-            <div>
-              <span className="text-xs text-slate-400 block uppercase tracking-widest mb-0.5">
-                {isCompleted ? 'Hoàn thành' : 'Thời gian còn lại'}
-              </span>
-              <span className={`text-4xl font-mono font-bold tabular-nums tracking-tight ${isCompleted ? 'text-emerald-400' : 'text-white'}`}>
-                {mins}:{secs}
-              </span>
-            </div>
-          </div>
-          <div className="w-full max-w-[200px] md:max-w-[250px] h-2 bg-slate-700 rounded-full overflow-hidden">
-            <div className={`h-full transition-all duration-1000 ${isCompleted ? 'bg-emerald-400' : 'bg-emerald-500'}`} style={{ width: `${percent}%` }}></div>
-          </div>
-        </div>
+        {/* Vòng tròn progress SVG */}
+        <CircularTimer
+          timeLeft={timeLeft}
+          total={total}
+          isRunning={isRunning}
+          isCompleted={isCompleted}
+        />
 
-        <div className="flex gap-3 w-full md:w-auto">
+        {/* Cụm nút điều khiển — phóng to, active:scale khi bấm */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <button
             onClick={onClick}
-            disabled={isDisabled}
-            className={`flex-1 md:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] ${buttonClass}`}
+            className={`w-full sm:min-w-[220px] py-5 px-8 rounded-2xl font-extrabold text-lg transition transform active:scale-95 flex items-center justify-center gap-3 ${buttonClass}`}
           >
-            <i className={`fa-solid ${buttonIcon} text-sm`}></i>
+            <i className={`fa-solid ${buttonIcon} text-xl`}></i>
             <span>{buttonLabel}</span>
           </button>
           <button
             onClick={onReset}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
+            title="Đặt lại"
+            aria-label="Đặt lại"
+            className="w-full sm:w-[76px] h-[76px] bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-2xl transition transform active:scale-90 border border-slate-700 hover:border-slate-600 flex items-center justify-center"
           >
-            <i className="fa-solid fa-rotate-right"></i>
+            <i className="fa-solid fa-rotate-right text-xl"></i>
           </button>
         </div>
       </div>

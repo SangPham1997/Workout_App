@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { useExerciseStore } from '../stores/useExerciseStore';
+import { useWorkoutStore } from '../stores/useWorkoutStore';
+import { audioCues } from '../utils/audioCues';
 
 export const useTimerStore = create((set, get) => ({
   timeLeft: 30,
@@ -13,6 +15,9 @@ export const useTimerStore = create((set, get) => ({
 
     const exercise = useExerciseStore.getState().getSelectedExercise();
     if (!exercise) return;
+
+    // beep bắt đầu (người dùng bấm nút -> đã có user gesture)
+    audioCues.start();
 
     const duration = exercise.duration || 30;
 
@@ -42,6 +47,8 @@ export const useTimerStore = create((set, get) => ({
       }
 
       if (timeLeft > 0) {
+        // bíp đếm ngược ở giây cuối cùng trước khi về 0
+        if (timeLeft === 1) audioCues.countdownTick(1);
         set({ timeLeft: timeLeft - 1 });
       } else {
         clearInterval(id);
@@ -50,6 +57,9 @@ export const useTimerStore = create((set, get) => ({
           isRunning: false,
           isCompleted: true,
         });
+        // hoàn thành bài: hợp âm + đánh dấu tiến độ (localStorage qua persist)
+        audioCues.complete();
+        useWorkoutStore.getState().completeExercise(exerciseNow.id);
       }
     }, 1000);
 
@@ -62,6 +72,7 @@ export const useTimerStore = create((set, get) => ({
       clearInterval(intervalId);
       set({ intervalId: null, isRunning: false });
     }
+    audioCues.pause();
   },
 
   resetTimer: (duration) => {
