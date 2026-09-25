@@ -1,3 +1,5 @@
+import ExerciseBadge from '../shared/ExerciseBadge';
+
 export default function ExerciseItem({ exercise, currentIndex, onSelect, idx }) {
     const isActive = currentIndex === idx;
     return (
@@ -7,17 +9,19 @@ export default function ExerciseItem({ exercise, currentIndex, onSelect, idx }) 
                 }`}
             onClick={() => onSelect(idx)}
         >
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isActive ? 'bg-emerald-500 text-slate-900' : 'bg-slate-700 text-slate-400'
+            <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${isActive ? 'bg-emerald-500 text-slate-900' : 'bg-slate-700 text-slate-400'
                         }`}>
                         {idx + 1}
                     </div>
-                    <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-300'}`}>
+                    {/* thumbnail SVG minh họa động tác */}
+                    <ExerciseBadge type={exercise.type} active={isActive} />
+                    <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-slate-300'}`}>
                         {exercise.name}
                     </span>
                 </div>
-                <span className="text-xs text-slate-500">{exercise.duration}s</span>
+                <span className="text-xs text-slate-500 ml-2 shrink-0">{exercise.duration}s</span>
             </div>
         </div>
     );

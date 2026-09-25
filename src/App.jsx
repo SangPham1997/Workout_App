@@ -2,7 +2,7 @@ import { useExerciseStore } from './stores/useExerciseStore';
 import { useTimerStore } from './hooks/useTimerStore';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
-import CanvasSimulator from './components/simulator/CanvasSimulator';
+import SvgSimulator from './components/simulator/SvgSimulator';
 import TimerControl from './components/timer/TimerControl';
 import TechniqueGuide from './components/simulator/TechniqueGuide';
 import ExerciseList from './components/exercises/ExerciseList';
@@ -42,7 +42,7 @@ function App() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Đang chọn
             </div>
-            <CanvasSimulator
+            <SvgSimulator
               exercise={selectedExercise}
               isRunning={isRunning}
             />

@@ -8,6 +8,7 @@ export const exercises = [
     duration: 45,
     guide: 'Nằm ngửa, tay để sau đầu. Co gối trái lên, xoay khuỷu tay phải chạm gối trái. Đổi bên liên tục nhịp nhàng, không thả chân chạm sàn.',
     type: 'bicycle',
+    svg: 'bicycle',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Bụng'
   },
@@ -19,6 +20,7 @@ export const exercises = [
     duration: 45,
     guide: 'Nằm ngửa, hai tay thả lỏng lót dưới hông để đỡ lưng. Nâng chân và xoay tròn khớp gối theo chiều tiến về phía trước giống như đạp bàn đạp.',
     type: 'supine',
+    svg: 'supine',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Bụng'
   },
@@ -30,6 +32,7 @@ export const exercises = [
     duration: 45,
     guide: 'Giữ tư thế nằm ngửa, thực hiện động tác đạp chân xoay tròn theo chiều ngược lại (từ dưới kéo ngược lên trên) để kích hoạt cơ bụng dưới.',
     type: 'reverse',
+    svg: 'reverse',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Bụng'
   },
@@ -40,7 +43,8 @@ export const exercises = [
     target: 'Cơ bụng sâu, lưng dưới, vai',
     duration: 30,
     guide: 'Tư thế chống đẩy, giữ cơ thể thẳng từ đầu đến gót chân. Siết cơ bụng và mông, không võng lưng. Giữ càng lâu càng tốt.',
-    type: 'plank',       // Bạn có thể định nghĩa thêm cách vẽ cho type này
+    type: 'plank',
+    svg: 'plank',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 1,             // Plank thường giữ tĩnh, không đếm rep theo chu kỳ
     category: 'Bụng'
   },
@@ -54,6 +58,7 @@ export const exercises = [
     duration: 30,
     guide: 'Tư thế chống bốn chân. Duỗi thẳng tay phải và chân trái, giữ vài giây rồi trở về. Đổi bên. Giữ lưng thẳng, không cong.',
     type: 'birddog',
+    svg: 'birddog',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Lưng & Cột sống'
   },
@@ -65,6 +70,7 @@ export const exercises = [
     duration: 30,
     guide: 'Nằm ngửa, tay và chân giơ thẳng lên. Duỗi chân phải và tay trái ra xa, giữ vài giây rồi trở về. Đổi bên. Giữ lưng áp sát sàn.',
     type: 'deadbug',
+    svg: 'deadbug',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Lưng & Cột sống'
   },
@@ -76,6 +82,7 @@ export const exercises = [
     duration: 30,
     guide: 'Tư thế chống bốn chân. Hít vào, ưỡn lưng xuống (bò). Thở ra, cong lưng lên (mèo). Lặp lại nhịp nhàng.',
     type: 'catcow',
+    svg: 'catcow',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Lưng & Cột sống'
   },
@@ -89,6 +96,7 @@ export const exercises = [
     duration: 30,
     guide: 'Tư thế chống đẩy cao. Kéo lần lượt từng đầu gối về phía ngực càng nhanh càng tốt. Giữ lưng thẳng, không võng hông.',
     type: 'climber',
+    svg: 'climber',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Toàn thân'
   },
@@ -100,6 +108,7 @@ export const exercises = [
     duration: 45,
     guide: 'Đứng thẳng, tay sau đầu. Co gối trái lên cao sang bên phải, đồng thời gập thân người để khuỷu tay phải tiến gần gối trái. Đổi bên.',
     type: 'standing',
+    svg: 'standing',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Toàn thân'
   },
@@ -110,7 +119,8 @@ export const exercises = [
     target: 'Đùi, mông, cơ lưng dưới',
     duration: 30,
     guide: 'Đứng thẳng, hai chân rộng bằng vai. Hạ thấp người xuống như ngồi ghế, giữ lưng thẳng. Đẩy mông ra sau, đầu gối không vượt quá mũi chân.',
-    type: 'static',  // hoặc bạn có thể vẽ người đứng squat
+    type: 'squat',
+    svg: 'squat',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Toàn thân'
   },
@@ -121,7 +131,8 @@ export const exercises = [
     target: 'Mông, cơ lưng dưới, cơ bụng',
     duration: 30,
     guide: 'Nằm ngửa, co gối, hai chân đặt sát sàn. Nâng hông lên cao, siết mông và giữ vài giây, rồi hạ xuống.',
-    type: 'static',
+    type: 'glute-bridge',
+    svg: 'glute-bridge',  // tên hình SVG minh họa (SvgFigures.jsx)
     reps: 2,
     category: 'Toàn thân'
   },
