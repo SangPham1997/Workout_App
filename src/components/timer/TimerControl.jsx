@@ -12,11 +12,11 @@ export default function TimerControl({
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const secs = String(timeLeft % 60).padStart(2, '0');
 
-  let buttonLabel = 'Bắt đầu';
-  let buttonIcon = 'fa-play';
-  let buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
-  let isDisabled = false;
-  let onClick = onStart;
+  let buttonLabel;
+  let buttonIcon;
+  let buttonClass;
+  const isDisabled = false;
+  let onClick;
 
   if (isRunning) {
     buttonLabel = 'Tạm dừng';

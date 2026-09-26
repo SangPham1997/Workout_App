@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { figureRegistry } from './figureRegistry';
 
 /*
@@ -10,10 +10,10 @@ import { figureRegistry } from './figureRegistry';
 
 const CYCLE_SECONDS = { climber: 4.2, catcow: 9, plank: 21 }; // nhịp 1 rep
 const CYCLIC_TYPES = ['bicycle', 'supine', 'reverse', 'climber', 'standing'];
+const DEFAULT_CYCLE = 7;
 
 export default function SvgSimulator({ exercise, isRunning, onRepChange }) {
   const [rep, setRep] = useState(0);
-  const intervalRef = useRef(null);
   const onRepChangeRef = useRef(onRepChange);
 
   useEffect(() => {
@@ -28,22 +28,24 @@ export default function SvgSimulator({ exercise, isRunning, onRepChange }) {
     setRep(0);
   }
 
-  // Đếm rep theo nhịp khi đang chạy
+  // Giá trị dẫn xuất — memo để tránh tính lại mỗi lần re-render.
+  const type = exercise?.type;
+  const hasCycle = useMemo(() => CYCLIC_TYPES.includes(type), [type]);
+  const cycleSeconds = CYCLE_SECONDS[type] ?? DEFAULT_CYCLE;
+  const Figure = figureRegistry[exercise?.svg || type];
+
+  // Đếm rep theo nhịp khi đang chạy (deps là giá trị nguyên/thuỷ — ổn định hơn object).
   useEffect(() => {
     onRepChangeRef.current?.(rep);
   }, [rep]);
 
   useEffect(() => {
-    if (!isRunning || !CYCLIC_TYPES.includes(exercise?.type)) return;
-    const cycleMs = (CYCLE_SECONDS[exercise.type] ?? 7) * 1000;
-    intervalRef.current = setInterval(() => {
+    if (!isRunning || !hasCycle) return;
+    const id = setInterval(() => {
       setRep((c) => c + 1);
-    }, cycleMs);
-    return () => clearInterval(intervalRef.current);
-  }, [isRunning, exercise]);
-
-  const Figure = figureRegistry[exercise?.svg || exercise?.type];
-  const hasCycle = CYCLIC_TYPES.includes(exercise?.type);
+    }, cycleSeconds * 1000);
+    return () => clearInterval(id);
+  }, [isRunning, hasCycle, cycleSeconds, exerciseId]);
 
   if (!Figure) {
     return <div className="text-slate-400 text-sm py-16">Đang tải...</div>;
@@ -54,7 +56,7 @@ export default function SvgSimulator({ exercise, isRunning, onRepChange }) {
       {/* vòng progress trang trí khi đang chạy */}
       <div
         className={`absolute inset-2 rounded-full border-2 border-dashed border-emerald-500/30 ${isRunning ? 'animate-spin-slow' : ''}`}
-        style={{ animationDuration: `${CYCLE_SECONDS[exercise?.type] ?? 7}s` }}
+        style={{ animationDuration: `${cycleSeconds}s` }}
       />
       <div className={`w-full h-full ${isRunning ? 'animate-breathe' : ''}`}>
         <Figure />
