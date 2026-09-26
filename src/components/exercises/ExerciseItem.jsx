@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import ExerciseBadge from '../shared/ExerciseBadge';
 
-export default function ExerciseItem({ exercise, currentIndex, onSelect, idx }) {
+/* memo: chỉ re-render khi props thật sự đổi (active item, handler ổn định từ App). */
+function ExerciseItem({ exercise, currentIndex, onSelect, idx }) {
     const isActive = currentIndex === idx;
     return (
         <div
-            key={exercise.id}
             className={`p-3 transition cursor-pointer flex flex-col gap-1 ${isActive ? 'bg-emerald-900/20 border-l-4 border-emerald-500' : 'hover:bg-slate-800/30'
                 }`}
             onClick={() => onSelect(idx)}
@@ -26,3 +27,5 @@ export default function ExerciseItem({ exercise, currentIndex, onSelect, idx }) 
         </div>
     );
 }
+
+export default memo(ExerciseItem);

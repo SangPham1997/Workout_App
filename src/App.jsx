@@ -1,5 +1,15 @@
-import { useExerciseStore } from './stores/useExerciseStore';
-import { useTimerStore } from './hooks/useTimerStore';
+import { useCallback, useMemo } from 'react';
+import {
+  useExercises,
+  useSelectedIndex,
+  useSelectExercise,
+  useTimeLeft,
+  useIsRunning,
+  useIsCompleted,
+  useStartTimer,
+  usePauseTimer,
+  useFullReset,
+} from './stores/selectors';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import SvgSimulator from './components/simulator/SvgSimulator';
@@ -8,28 +18,41 @@ import TechniqueGuide from './components/simulator/TechniqueGuide';
 import ExerciseList from './components/exercises/ExerciseList';
 
 function App() {
-  const { exercises, selectedIndex, selectExercise } = useExerciseStore();
-  const { timeLeft, isRunning, isCompleted, startTimer, pauseTimer, fullReset } = useTimerStore();
+  // Subscribe từng field nhỏ để tránh re-render cả cây khi không cần thiết.
+  const exercises = useExercises();
+  const selectedIndex = useSelectedIndex();
+  const selectExercise = useSelectExercise();
+  const timeLeft = useTimeLeft();
+  const isRunning = useIsRunning();
+  const isCompleted = useIsCompleted();
+  const startTimer = useStartTimer();
+  const pauseTimer = usePauseTimer();
+  const fullReset = useFullReset();
 
   const selectedExercise = exercises[selectedIndex] || null;
+
+  // Callback ổn định — giúp React.memo ở ExerciseList / ExerciseItem có tác dụng.
+  const handleSelectExercise = useCallback(
+    (index) => {
+      selectExercise(index);
+      fullReset();
+    },
+    [selectExercise, fullReset]
+  );
+
+  const handleResetAndStart = useCallback(() => {
+    fullReset();
+    startTimer();
+  }, [fullReset, startTimer]);
+
+  const handlers = useMemo(
+    () => ({ onStart: startTimer, onPause: pauseTimer, onReset: fullReset }),
+    [startTimer, pauseTimer, fullReset]
+  );
 
   if (!selectedExercise) {
     return <div className="text-white p-4">Đang tải...</div>;
   }
-
-  const handleSelectExercise = (index) => {
-    selectExercise(index);
-    fullReset();
-  };
-
-  const handleStart = () => startTimer();
-  const handlePause = () => pauseTimer();
-  const handleReset = () => fullReset();
-
-  const handleResetAndStart = () => {
-    fullReset();
-    startTimer();
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
@@ -62,9 +85,9 @@ function App() {
             isRunning={isRunning}
             total={selectedExercise.duration}
             isCompleted={isCompleted}
-            onStart={handleStart}
-            onPause={handlePause}
-            onReset={handleReset}
+            onStart={handlers.onStart}
+            onPause={handlers.onPause}
+            onReset={handlers.onReset}
             onResetAndStart={handleResetAndStart}
           />
 

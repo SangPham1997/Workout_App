@@ -1,10 +1,12 @@
+import { memo } from 'react';
 import { figureRegistry } from '../simulator/figureRegistry';
 
 /*
   ExerciseBadge — thumbnail SVG nhỏ dùng trong danh sách bài tập,
   vẽ lại đúng hình của bài (dùng chung SvgFigures với simulator).
+  memo: thumbnail SVG khá nặng — tránh vẽ lại khi item không đổi trạng thái.
 */
-export default function ExerciseBadge({ type, active = false }) {
+function ExerciseBadge({ type, active = false }) {
   const Figure = figureRegistry[type];
   if (!Figure) return null;
   return (
@@ -24,3 +26,5 @@ export default function ExerciseBadge({ type, active = false }) {
     </div>
   );
 }
+
+export default memo(ExerciseBadge);

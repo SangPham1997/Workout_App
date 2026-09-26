@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import ExerciseItem from './ExerciseItem';
 
+/*
+  ExerciseList — tối ưu hiệu năng:
+  - useMemo cho việc nhóm bài theo category (tránh reduce lại mỗi lần re-render).
+  - Map index O(1) thay vì exercises.indexOf(ex) O(n) cho mỗi item.
+  - React.memo ở ExerciseItem + callback ổn định → chỉ item thay đổi active mới re-render.
+*/
 export default function ExerciseList({
   exercises,
   currentIndex,
@@ -8,12 +14,22 @@ export default function ExerciseList({
 }) {
   const [expandedCategories, setExpandedCategories] = useState({});
 
-  const grouped = exercises.reduce((acc, ex) => {
-    const cat = ex.category || 'Khác';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(ex);
+  // Nhóm bài theo category — chỉ tính lại khi danh sách bài đổi.
+  const grouped = useMemo(() => {
+    const acc = {};
+    for (const ex of exercises) {
+      const cat = ex.category || 'Khác';
+      (acc[cat] ||= []).push(ex);
+    }
     return acc;
-  }, {});
+  }, [exercises]);
+
+  // Tra index theo id — O(1) thay vì indexOf O(n).
+  const indexById = useMemo(() => {
+    const map = new Map();
+    exercises.forEach((ex, i) => map.set(ex.id, i));
+    return map;
+  }, [exercises]);
 
   const toggleCategory = (cat) => {
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
@@ -42,14 +58,13 @@ export default function ExerciseList({
             {expandedCategories[cat] && (
               <div className="divide-y divide-slate-700/30">
                 {grouped[cat].map((ex) => {
-                  const idx = exercises.indexOf(ex);
                   return (
                     <ExerciseItem
                       key={ex.id}
                       exercise={ex}
                       currentIndex={currentIndex}
                       onSelect={onSelect}
-                      idx={idx} />
+                      idx={indexById.get(ex.id)} />
                   );
                 })}
               </div>
