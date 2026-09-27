@@ -1,4 +1,6 @@
-export default function Header() {
+import { memo } from 'react';
+
+export default memo(function Header() {
   return (
     <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 shadow-lg">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -16,4 +18,4 @@ export default function Header() {
       </div>
     </header>
   );
-}
+});

@@ -29,7 +29,7 @@ function App() {
   const pauseTimer = usePauseTimer();
   const fullReset = useFullReset();
 
-  const selectedExercise = exercises[selectedIndex] || null;
+  const selectedExercise = useMemo(() => exercises[selectedIndex] || null, [exercises, selectedIndex]);
 
   // Callback ổn định — giúp React.memo ở ExerciseList / ExerciseItem có tác dụng.
   const handleSelectExercise = useCallback(

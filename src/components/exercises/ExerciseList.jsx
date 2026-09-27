@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import ExerciseItem from './ExerciseItem';
 
 /*
@@ -31,9 +31,9 @@ export default function ExerciseList({
     return map;
   }, [exercises]);
 
-  const toggleCategory = (cat) => {
+  const toggleCategory = useCallback((cat) => {
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
-  };
+  }, []);
 
   return (
     <div className="flex flex-col gap-4 h-full">
