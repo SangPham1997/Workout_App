@@ -2,19 +2,32 @@ import { useState, useEffect } from 'react';
 
 const EXERCISE_ICONS = {
   'Đấm': 'fa-hand-fist',
+  'zuki': 'fa-hand-fist',
+  'Oi-': 'fa-hand-fist',
+  'Gyaku': 'fa-hand-fist',
+  'Chamber': 'fa-hand-fist',
   'Đá': 'fa-shoe-prints',
+  'geri': 'fa-shoe-prints',
+  'Mae-': 'fa-shoe-prints',
+  'Yoko-': 'fa-shoe-prints',
   'Block': 'fa-shield-halved',
+  'uke': 'fa-shield-halved',
+  'barai': 'fa-shield-halved',
+  'stance': 'fa-person-standing',
+  'dachi': 'fa-person-standing',
   'Thở': 'fa-wind',
   'Thiền': 'fa-spa',
   'Plank': 'fa-person',
   'Jumping': 'fa-person-running',
   'Burpees': 'fa-fire',
   'Squat': 'fa-person',
+  'Knee': 'fa-person-running',
 };
 
 const getExerciseIcon = (name) => {
+  const lower = name.toLowerCase();
   for (const [key, icon] of Object.entries(EXERCISE_ICONS)) {
-    if (name.toLowerCase().includes(key.toLowerCase())) return icon;
+    if (lower.includes(key.toLowerCase())) return icon;
   }
   return 'fa-dumbbell';
 };
@@ -27,10 +40,15 @@ export default function KarateDetail({
   onNoteChange,
 }) {
   const [localNote, setLocalNote] = useState(note || '');
+  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
     setLocalNote(note || '');
   }, [session?.id, note]);
+
+  useEffect(() => {
+    setVideoError(false);
+  }, [session?.id, session?.videoUrl]);
 
   if (!session) return null;
 
@@ -40,8 +58,8 @@ export default function KarateDetail({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* VIDEO — dùng trực tiếp URL đã ở dạng embed */}
-      {session.videoUrl ? (
+      {/* VIDEO — embed URL, có fallback khi YouTube từ chối nhúng / mất mạng */}
+      {session.videoUrl && !videoError ? (
         <div className="aspect-video rounded-2xl overflow-hidden border border-slate-700/50 shadow-lg bg-black">
           <iframe
             className="w-full h-full"
@@ -51,12 +69,28 @@ export default function KarateDetail({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
+            onError={() => setVideoError(true)}
           />
         </div>
       ) : (
-        <div className="aspect-video rounded-2xl border border-slate-700/50 flex flex-col items-center justify-center text-slate-500 bg-slate-800/40">
-          <i className="fa-solid fa-hand-fist text-6xl text-rose-400/30 mb-2"></i>
-          <p className="text-sm">Chưa có video hướng dẫn</p>
+        <div className="aspect-video rounded-2xl border border-slate-700/50 flex flex-col items-center justify-center text-slate-500 bg-slate-800/40 gap-3">
+          <i className="fa-solid fa-hand-fist text-6xl text-rose-400/30"></i>
+          <p className="text-sm">
+            {videoError
+              ? 'Video không hiển thị được trong trang'
+              : 'Chưa có video hướng dẫn'}
+          </p>
+          {session.videoUrl && (
+            <a
+              href={session.videoUrl.replace('/embed/', '/watch?v=').split('?list')[0].split('&index')[0]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold hover:bg-rose-500/25 transition"
+            >
+              <i className="fa-brands fa-youtube"></i>
+              Mở trên YouTube
+            </a>
+          )}
         </div>
       )}
 
@@ -150,6 +184,22 @@ export default function KarateDetail({
             </p>
           </div>
         )}
+      </div>
+
+      {/* GHI CHÚ BUỔI TẬP */}
+      <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl p-5 border border-slate-700/50">
+        <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2 mb-3 uppercase tracking-wide">
+          <i className="fa-solid fa-pen-to-square"></i>
+          Ghi chú buổi tập
+        </h4>
+        <textarea
+          value={localNote}
+          onChange={(e) => setLocalNote(e.target.value)}
+          onBlur={handleNoteBlur}
+          rows={3}
+          placeholder='Cảm nhận sau buổi tập: kỹ thuật nào chưa ổn, thể lực, chấn thương... (tự lưu khi bạn gõ xong)'
+          className="w-full resize-y rounded-xl bg-slate-900/60 border border-slate-700/50 px-3.5 py-3 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 transition"
+        />
       </div>
     </div>
   );

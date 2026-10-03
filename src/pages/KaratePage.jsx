@@ -3,6 +3,10 @@ import {
   useKarateIndex,
   useSelectKarateSession,
   useSelectedKarateSession,
+  useKarateCompletedIds,
+  useToggleKarateComplete,
+  useSetKarateNote,
+  useKarateNoteFor,
   useTimeLeft,
   useIsRunning,
   useIsCompleted,
@@ -22,6 +26,10 @@ export default function KaratePage() {
   const selectedIndex = useKarateIndex();
   const selectedSession = useSelectedKarateSession();
   const selectSession = useSelectKarateSession();
+  const completedIds = useKarateCompletedIds();
+  const toggleComplete = useToggleKarateComplete();
+  const setNote = useSetKarateNote();
+  const sessionNote = useKarateNoteFor(selectedSession?.id);
 
   // Timer store — tách riêng từng field qua selectors
   const timeLeft = useTimeLeft();
@@ -45,6 +53,8 @@ export default function KaratePage() {
     startTimer();
   };
 
+  const progressPct = Math.round((completedIds.length / sessions.length) * 100);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
       <Header />
@@ -66,9 +76,31 @@ export default function KaratePage() {
                 </p>
               </div>
             </div>
+
+            {/* Thanh tiến độ lộ trình */}
+            <div className="relative mt-4">
+              <div className="flex items-center justify-between text-[11px] mb-1.5">
+                <span className="text-slate-400">
+                  Tiến độ: {completedIds.length}/{sessions.length} buổi đã hoàn thành
+                </span>
+                <span className="font-bold text-emerald-400">{progressPct}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-900/70 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-500"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
           </div>
 
-          <KarateDetail session={selectedSession} />
+          <KarateDetail
+            session={selectedSession}
+            isCompleted={completedIds.includes(selectedSession.id)}
+            onToggleComplete={() => toggleComplete(selectedSession.id)}
+            note={sessionNote}
+            onNoteChange={(text) => setNote(selectedSession.id, text)}
+          />
 
           <TimerControl
             timeLeft={timeLeft}
@@ -86,6 +118,7 @@ export default function KaratePage() {
           <KarateSessionList
             sessions={sessions}
             currentIndex={selectedIndex}
+            completedIds={completedIds}
             onSelect={handleSelect}
           />
         </section>

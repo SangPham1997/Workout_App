@@ -42,3 +42,13 @@ export const useKarateSessions = () => useKarateStore(selectKarateSessions);
 export const useKarateIndex = () => useKarateStore(selectKarateIndex);
 export const useSelectedKarateSession = () => useKarateStore(selectSelectedKarateSession);
 export const useSelectKarateSession = () => useKarateStore(selectKarateSession);
+
+const selectCompletedIds = (s) => s.completedIds;
+const selectToggleComplete = (s) => s.toggleComplete;
+const selectSetNote = (s) => s.setNote;
+
+export const useKarateCompletedIds = () => useKarateStore(selectCompletedIds);
+export const useToggleKarateComplete = () => useKarateStore(selectToggleComplete);
+export const useSetKarateNote = () => useKarateStore(selectSetNote);
+export const useKarateNoteFor = (id) =>
+  useKarateStore((s) => (id ? s.notes[id] || '' : ''));
