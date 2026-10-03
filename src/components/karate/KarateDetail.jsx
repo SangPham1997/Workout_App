@@ -2,32 +2,19 @@ import { useState } from 'react';
 
 const EXERCISE_ICONS = {
   'Đấm': 'fa-hand-fist',
-  'zuki': 'fa-hand-fist',
-  'Oi-': 'fa-hand-fist',
-  'Gyaku': 'fa-hand-fist',
-  'Chamber': 'fa-hand-fist',
   'Đá': 'fa-shoe-prints',
-  'geri': 'fa-shoe-prints',
-  'Mae-': 'fa-shoe-prints',
-  'Yoko-': 'fa-shoe-prints',
   'Block': 'fa-shield-halved',
-  'uke': 'fa-shield-halved',
-  'barai': 'fa-shield-halved',
-  'stance': 'fa-person-standing',
-  'dachi': 'fa-person-standing',
   'Thở': 'fa-wind',
   'Thiền': 'fa-spa',
   'Plank': 'fa-person',
   'Jumping': 'fa-person-running',
   'Burpees': 'fa-fire',
   'Squat': 'fa-person',
-  'Knee': 'fa-person-running',
 };
 
 const getExerciseIcon = (name) => {
-  const lower = name.toLowerCase();
   for (const [key, icon] of Object.entries(EXERCISE_ICONS)) {
-    if (lower.includes(key.toLowerCase())) return icon;
+    if (name.toLowerCase().includes(key.toLowerCase())) return icon;
   }
   return 'fa-dumbbell';
 };
@@ -61,39 +48,44 @@ export default function KarateDetail({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* VIDEO — embed URL, có fallback khi YouTube từ chối nhúng / mất mạng */}
-      {session.videoUrl && !videoError ? (
-        <div className="aspect-video rounded-2xl overflow-hidden border border-slate-700/50 shadow-lg bg-black">
-          <iframe
-            className="w-full h-full"
-            src={session.videoUrl}
-            title={session.name}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-            onError={() => setVideoState((v) => ({ ...v, failed: true }))}
-          />
+      {/* VIDEO — iframe + nút fallback mở YouTube khi lỗi/chết link */}
+      {session.videoUrl ? (
+        <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-700/50 shadow-lg bg-black group">
+          {!videoError && (
+            <iframe
+              className="w-full h-full"
+              src={session.videoUrl}
+              title={session.name}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              onError={() => setVideoState((v) => ({ ...v, failed: true }))}
+            />
+          )}
+          {videoError && (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-800/60 gap-3">
+              <i className="fa-solid fa-video-slash text-4xl text-rose-400/50"></i>
+              <p className="text-sm">Video không tải được</p>
+            </div>
+          )}
+          {/* Nút fallback: hiện khi hover, bắt buộc khi lỗi */}
+          <a
+            href={session.videoUrl.replace('/embed/', '/watch?v=')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`absolute bottom-3 right-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-600 text-white shadow-lg transition ${
+              videoError ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
+          >
+            <i className="fa-brands fa-youtube"></i>
+            Mở trên YouTube
+          </a>
         </div>
       ) : (
-        <div className="aspect-video rounded-2xl border border-slate-700/50 flex flex-col items-center justify-center text-slate-500 bg-slate-800/40 gap-3">
-          <i className="fa-solid fa-hand-fist text-6xl text-rose-400/30"></i>
-          <p className="text-sm">
-            {videoError
-              ? 'Video không hiển thị được trong trang'
-              : 'Chưa có video hướng dẫn'}
-          </p>
-          {session.videoUrl && (
-            <a
-              href={session.videoUrl.replace('/embed/', '/watch?v=').split('?list')[0].split('&index')[0]}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold hover:bg-rose-500/25 transition"
-            >
-              <i className="fa-brands fa-youtube"></i>
-              Mở trên YouTube
-            </a>
-          )}
+        <div className="aspect-video rounded-2xl border border-slate-700/50 flex flex-col items-center justify-center text-slate-500 bg-slate-800/40">
+          <i className="fa-solid fa-hand-fist text-6xl text-rose-400/30 mb-2"></i>
+          <p className="text-sm">Chưa có video hướng dẫn</p>
         </div>
       )}
 
