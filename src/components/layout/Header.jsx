@@ -1,7 +1,26 @@
 import { memo } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  useTimeLeft,
+  useIsRunning,
+  useKarateIndex,
+  useKarateSessions,
+} from '../../stores/selectors';
+import MiniTimer from '../timer/MiniTimer';
 
 export default memo(function Header() {
+  // Đọc trực tiếp từ timer store — luôn phản ánh đúng buổi tập đang chọn (HIIT/Karate)
+  const timeLeft = useTimeLeft();
+  const isRunning = useIsRunning();
+  const { pathname } = useLocation();
+  const karateSessions = useKarateSessions();
+  const karateIndex = useKarateIndex();
+
+  // Tổng thời lượng của session đang chọn trên trang Karate (dùng cho vòng tiến độ)
+  const total = pathname.startsWith('/karate')
+    ? karateSessions[karateIndex]?.duration ?? 0
+    : 0;
+
   return (
     <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-lg">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
@@ -19,6 +38,9 @@ export default memo(function Header() {
             </p>
           </div>
         </NavLink>
+
+        {/* Mini timer — thời gian còn lại của buổi tập đang chọn */}
+        <MiniTimer timeLeft={timeLeft} total={total} isRunning={isRunning} />
 
         {/* Navigation tabs */}
         <nav className="flex items-center gap-1 bg-slate-800/60 border border-slate-700/50 rounded-full p-1">

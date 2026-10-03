@@ -1,5 +1,21 @@
 import { create } from 'zustand';
 import { useExerciseStore } from '../stores/useExerciseStore';
+import { useKarateStore } from '../stores/useKarateStore';
+
+/**
+ * Resolve buổi tập HIIT hoặc Karate đang chọn theo route hiện tại.
+ * Dùng chung cho timer để đồng hồ luôn phản ánh đúng buổi tập trên màn hình.
+ */
+const getActiveSession = () => {
+  const isKarate =
+    typeof window !== 'undefined' &&
+    window.location.pathname.startsWith('/karate');
+  if (isKarate) {
+    const ks = useKarateStore.getState();
+    return ks.sessions[ks.selectedIndex] || null;
+  }
+  return useExerciseStore.getState().getSelectedExercise();
+};
 
 export const useTimerStore = create((set, get) => ({
   timeLeft: 30,
@@ -11,7 +27,7 @@ export const useTimerStore = create((set, get) => ({
     const { isRunning, isCompleted, timeLeft: currentTimeLeft } = get();
     if (isRunning || isCompleted) return;
 
-    const exercise = useExerciseStore.getState().getSelectedExercise();
+    const exercise = getActiveSession();
     if (!exercise) return;
 
     const duration = exercise.duration || 30;
@@ -34,8 +50,8 @@ export const useTimerStore = create((set, get) => ({
     const id = setInterval(() => {
       const state = get();
       const { timeLeft, isCompleted: comp } = state;
-      const exerciseNow = useExerciseStore.getState().getSelectedExercise();
-      if (!exerciseNow || comp) {
+      const sessionNow = getActiveSession();
+      if (!sessionNow || comp) {
         clearInterval(id);
         set({ intervalId: null, isRunning: false });
         return;
@@ -82,12 +98,12 @@ export const useTimerStore = create((set, get) => ({
     if (intervalId) {
       clearInterval(intervalId);
     }
-    const exercise = useExerciseStore.getState().getSelectedExercise();
+    const session = getActiveSession();
     set({
       intervalId: null,
       isRunning: false,
       isCompleted: false,
-      timeLeft: exercise?.duration || 30,
+      timeLeft: session?.duration || 30,
     });
   },
 }));
