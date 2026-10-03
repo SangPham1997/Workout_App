@@ -26,19 +26,21 @@ export default function KarateDetail({
   note,
   onNoteChange,
 }) {
-  const [localNote, setLocalNote] = useState(note || '');
-  const [videoError, setVideoError] = useState(false);
-  // Đồng bộ state khi đổi buổi tập — pattern "adjust state during render"
-  // (hợp lệ theo React docs, tránh lint rule set-state-in-effect)
-  const [prevKey, setPrevKey] = useState(`${session?.id}:${note ?? ''}`);
-  const currentKey = `${session?.id}:${note ?? ''}`;
-  if (currentKey !== prevKey) {
-    setPrevKey(currentKey);
-    setLocalNote(note || '');
-    setVideoError(false);
+  const [noteState, setNoteState] = useState({ sid: session?.id, text: note || '' });
+  const [videoState, setVideoState] = useState({ sid: session?.id, url: session?.videoUrl, failed: false });
+
+  // Đồng bộ state khi đổi buổi (pattern "adjust state during render" của React)
+  if (noteState.sid !== session?.id) {
+    setNoteState({ sid: session?.id, text: note || '' });
+  }
+  if (videoState.sid !== session?.id || videoState.url !== session?.videoUrl) {
+    setVideoState({ sid: session?.id, url: session?.videoUrl, failed: false });
   }
 
   if (!session) return null;
+
+  const localNote = noteState.text;
+  const videoError = videoState.failed;
 
   const handleNoteBlur = () => {
     if (localNote !== note) onNoteChange(localNote);
@@ -46,7 +48,7 @@ export default function KarateDetail({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* VIDEO — iframe + fallback mở YouTube khi lỗi/chết link */}
+      {/* VIDEO — iframe + nút fallback mở YouTube khi lỗi/chết link */}
       {session.videoUrl ? (
         <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-700/50 shadow-lg bg-black group">
           {!videoError && (
@@ -58,7 +60,7 @@ export default function KarateDetail({
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
-              onError={() => setVideoError(true)}
+              onError={() => setVideoState((v) => ({ ...v, failed: true }))}
             />
           )}
           {videoError && (
@@ -67,7 +69,7 @@ export default function KarateDetail({
               <p className="text-sm">Video không tải được</p>
             </div>
           )}
-          {/* Nút fallback: luôn hiện khi hover, bắt buộc khi lỗi */}
+          {/* Nút fallback: hiện khi hover, bắt buộc khi lỗi */}
           <a
             href={session.videoUrl.replace('/embed/', '/watch?v=')}
             target="_blank"
@@ -177,6 +179,22 @@ export default function KarateDetail({
             </p>
           </div>
         )}
+      </div>
+
+      {/* GHI CHÚ BUỔI TẬP */}
+      <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl p-5 border border-slate-700/50">
+        <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2 mb-3 uppercase tracking-wide">
+          <i className="fa-solid fa-pen-to-square"></i>
+          Ghi chú buổi tập
+        </h4>
+        <textarea
+          value={localNote}
+          onChange={(e) => setNoteState({ sid: session.id, text: e.target.value })}
+          onBlur={handleNoteBlur}
+          rows={3}
+          placeholder='Cảm nhận sau buổi tập: kỹ thuật nào chưa ổn, thể lực, chấn thương... (tự lưu khi bạn gõ xong)'
+          className="w-full resize-y rounded-xl bg-slate-900/60 border border-slate-700/50 px-3.5 py-3 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/30 transition"
+        />
       </div>
     </div>
   );
