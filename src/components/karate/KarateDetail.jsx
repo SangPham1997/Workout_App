@@ -27,13 +27,15 @@ export default function KarateDetail({
   onNoteChange,
 }) {
   const [localNote, setLocalNote] = useState(note || '');
-  // Đồng bộ note khi đổi buổi tập — pattern "adjust state during render"
+  const [videoError, setVideoError] = useState(false);
+  // Đồng bộ state khi đổi buổi tập — pattern "adjust state during render"
   // (hợp lệ theo React docs, tránh lint rule set-state-in-effect)
   const [prevKey, setPrevKey] = useState(`${session?.id}:${note ?? ''}`);
   const currentKey = `${session?.id}:${note ?? ''}`;
   if (currentKey !== prevKey) {
     setPrevKey(currentKey);
     setLocalNote(note || '');
+    setVideoError(false);
   }
 
   if (!session) return null;
@@ -44,18 +46,39 @@ export default function KarateDetail({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* VIDEO — dùng trực tiếp URL đã ở dạng embed */}
+      {/* VIDEO — iframe + fallback mở YouTube khi lỗi/chết link */}
       {session.videoUrl ? (
-        <div className="aspect-video rounded-2xl overflow-hidden border border-slate-700/50 shadow-lg bg-black">
-          <iframe
-            className="w-full h-full"
-            src={session.videoUrl}
-            title={session.name}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-          />
+        <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-700/50 shadow-lg bg-black group">
+          {!videoError && (
+            <iframe
+              className="w-full h-full"
+              src={session.videoUrl}
+              title={session.name}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              onError={() => setVideoError(true)}
+            />
+          )}
+          {videoError && (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-800/60 gap-3">
+              <i className="fa-solid fa-video-slash text-4xl text-rose-400/50"></i>
+              <p className="text-sm">Video không tải được</p>
+            </div>
+          )}
+          {/* Nút fallback: luôn hiện khi hover, bắt buộc khi lỗi */}
+          <a
+            href={session.videoUrl.replace('/embed/', '/watch?v=')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`absolute bottom-3 right-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-rose-600 text-white shadow-lg transition ${
+              videoError ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
+          >
+            <i className="fa-brands fa-youtube"></i>
+            Mở trên YouTube
+          </a>
         </div>
       ) : (
         <div className="aspect-video rounded-2xl border border-slate-700/50 flex flex-col items-center justify-center text-slate-500 bg-slate-800/40">
