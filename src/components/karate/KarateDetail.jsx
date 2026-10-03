@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const EXERCISE_ICONS = {
   'Đấm': 'fa-hand-fist',
@@ -39,18 +39,21 @@ export default function KarateDetail({
   note,
   onNoteChange,
 }) {
-  const [localNote, setLocalNote] = useState(note || '');
-  const [videoError, setVideoError] = useState(false);
+  const [noteState, setNoteState] = useState({ sid: session?.id, text: note || '' });
+  const [videoState, setVideoState] = useState({ sid: session?.id, url: session?.videoUrl, failed: false });
 
-  useEffect(() => {
-    setLocalNote(note || '');
-  }, [session?.id, note]);
-
-  useEffect(() => {
-    setVideoError(false);
-  }, [session?.id, session?.videoUrl]);
+  // Đồng bộ state khi đổi buổi (pattern "adjust state during render" của React)
+  if (noteState.sid !== session?.id) {
+    setNoteState({ sid: session?.id, text: note || '' });
+  }
+  if (videoState.sid !== session?.id || videoState.url !== session?.videoUrl) {
+    setVideoState({ sid: session?.id, url: session?.videoUrl, failed: false });
+  }
 
   if (!session) return null;
+
+  const localNote = noteState.text;
+  const videoError = videoState.failed;
 
   const handleNoteBlur = () => {
     if (localNote !== note) onNoteChange(localNote);
@@ -69,7 +72,7 @@ export default function KarateDetail({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
-            onError={() => setVideoError(true)}
+            onError={() => setVideoState((v) => ({ ...v, failed: true }))}
           />
         </div>
       ) : (
@@ -194,7 +197,7 @@ export default function KarateDetail({
         </h4>
         <textarea
           value={localNote}
-          onChange={(e) => setLocalNote(e.target.value)}
+          onChange={(e) => setNoteState({ sid: session.id, text: e.target.value })}
           onBlur={handleNoteBlur}
           rows={3}
           placeholder='Cảm nhận sau buổi tập: kỹ thuật nào chưa ổn, thể lực, chấn thương... (tự lưu khi bạn gõ xong)'
