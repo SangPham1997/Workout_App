@@ -32,3 +32,94 @@
 .animate-spin-slow {
   animation: spin-slow linear infinite;
 }
+
+/* ===== CUSTOM SCROLLBAR (toàn cục) ===== */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent;
+}
+
+/* Chrome / Edge / Safari */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #334155, #1e293b);
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #f43f5e, #e11d48);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ===== SCROLLBAR CHO KARATE (rose theme) ===== */
+.scrollbar-rose::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4c0519, #881337);
+}
+
+.scrollbar-rose::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #f43f5e, #e11d48);
+}
+
+/* ===== SCROLLBAR ẨN (dùng cho WeekTabs horizontal) ===== */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ===== SCROLLBAR MẢNH (dùng cho list) ===== */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 63, 94, 0.6);
+}
+
+/* ===== SCROLLBAR VỚI FADE Ở ĐẦU/CUỐI (dùng mask) ===== */
+.scroll-fade {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+/* ===== SCROLL SMOOTH ===== */
+.scroll-smooth-custom {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}

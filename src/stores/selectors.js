@@ -1,9 +1,9 @@
 /*
   Selectors cho zustand store — tách riêng để dùng với hook selector.
   Component chỉ subscribe đúng field nó cần → chỉ re-render khi giá trị đó đổi.
-  Ví dụ: ExerciseList không re-render mỗi giây khi đồng hồ chạy.
 */
 import { useExerciseStore } from './useExerciseStore';
+import { useKarateStore } from './useKarateStore';
 import { useTimerStore } from '../hooks/useTimerStore';
 
 // ----- Exercise store -----
@@ -15,7 +15,6 @@ export const selectSelectedExercise = (s) => s.exercises[s.selectedIndex] || nul
 export const useExercises = () => useExerciseStore(selectExercises);
 export const useSelectedIndex = () => useExerciseStore(selectSelectedIndex);
 export const useSelectedExercise = () => useExerciseStore(selectSelectedExercise);
-// Action của zustand luôn là tham chiếu ổn định → an toàn khi đưa vào deps của useMemo.
 export const useSelectExercise = () => useExerciseStore(selectSelectExercise);
 
 // ----- Timer store -----
@@ -32,3 +31,14 @@ export const useIsCompleted = () => useTimerStore(selectIsCompleted);
 export const useStartTimer = () => useTimerStore(selectStartTimer);
 export const usePauseTimer = () => useTimerStore(selectPauseTimer);
 export const useFullReset = () => useTimerStore(selectFullReset);
+
+// ----- Karate store -----
+export const selectKarateSessions = (s) => s.sessions;
+export const selectKarateIndex = (s) => s.selectedIndex;
+export const selectKarateSession = (s) => s.selectSession;
+export const selectSelectedKarateSession = (s) => s.sessions[s.selectedIndex] || null;
+
+export const useKarateSessions = () => useKarateStore(selectKarateSessions);
+export const useKarateIndex = () => useKarateStore(selectKarateIndex);
+export const useSelectedKarateSession = () => useKarateStore(selectSelectedKarateSession);
+export const useSelectKarateSession = () => useKarateStore(selectKarateSession);

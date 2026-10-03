@@ -1,15 +1,35 @@
-// Registry tra hình SVG theo key `svg` trong data/exercises.js
 import {
-  BicycleFigure, SupineFigure, ReverseFigure, PlankFigure, BirdDogFigure,
-  DeadBugFigure, CatCowFigure, ClimberFigure, StandingFigure, SquatFigure,
+  BicycleFigure,
+  SupineFigure,
+  ReverseFigure,
+  PlankFigure,
+  BirdDogFigure,
+  DeadBugFigure,
+  CatCowFigure,
+  ClimberFigure,
+  StandingFigure,
+  SquatFigure,
   GluteBridgeFigure,
+  SwanFigure,
+  SwimmingFigure,
+  SpineStretchFigure,
+  RollDownFigure,
 } from './SvgFigures';
 
 export const figureRegistry = {
+  // Nhóm bụng
   bicycle: BicycleFigure,
   supine: SupineFigure,
   reverse: ReverseFigure,
   plank: PlankFigure,
+
+  // Nhóm lưng & cột sống (Pilates)
+  swan: SwanFigure,
+  swimming: SwimmingFigure,
+  'spine-stretch': SpineStretchFigure,
+  'roll-down': RollDownFigure,
+
+  // Nhóm toàn thân
   birddog: BirdDogFigure,
   deadbug: DeadBugFigure,
   catcow: CatCowFigure,
