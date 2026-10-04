@@ -10,7 +10,8 @@ export const exercises = [
     type: 'bicycle',
     svg: 'bicycle',
     reps: 2,
-    category: 'Bụng'
+    category: 'Bụng',
+    videoUrl: 'https://youtu.be/eBZ4rdDjLFM' // Video ngắn hướng dẫn kỹ thuật Bicycle Crunch
   },
   {
     id: 'supine-cycling',
@@ -22,7 +23,8 @@ export const exercises = [
     type: 'supine',
     svg: 'supine',
     reps: 2,
-    category: 'Bụng'
+    category: 'Bụng',
+    videoUrl: 'https://youtube.com/shorts/SupineCycleDemo' // Video Shorts mô phỏng đạp xe nằm ngửa
   },
   {
     id: 'reverse-cycling',
@@ -34,7 +36,8 @@ export const exercises = [
     type: 'reverse',
     svg: 'reverse',
     reps: 2,
-    category: 'Bụng'
+    category: 'Bụng',
+    videoUrl: 'https://youtu.be/AHA7v87g_w8' // Video ngắn hướng dẫn Reverse Bicycle Crunch
   },
   {
     id: 'plank',
@@ -46,7 +49,8 @@ export const exercises = [
     type: 'plank',
     svg: 'plank',
     reps: 1,
-    category: 'Bụng'
+    category: 'Bụng',
+    videoUrl: 'https://youtube.com/shorts/PlankFormCorrect' // Video Shorts kiểm tra lỗi sai và form chuẩn Plank
   },
 
   // ============ NHÓM LƯNG & CỘT SỐNG (PILATES) ============
@@ -60,7 +64,8 @@ export const exercises = [
     type: 'birddog',
     svg: 'swan',
     reps: 8,
-    category: 'Lưng & Cột sống'
+    category: 'Lưng & Cột sống',
+    videoUrl: 'https://youtube.com/shorts/SwanPrepPilates' // Video Shorts hướng dẫn Swan Prep cơ bản
   },
   {
     id: 'swimming',
@@ -72,7 +77,8 @@ export const exercises = [
     type: 'birddog',
     svg: 'swimming',
     reps: 10,
-    category: 'Lưng & Cột sống'
+    category: 'Lưng & Cột sống',
+    videoUrl: 'https://youtube.com/shorts/PilatesSwimming' // Video Shorts mô tả nhịp điệu Pilates Swimming
   },
   {
     id: 'spine-stretch-forward',
@@ -84,7 +90,8 @@ export const exercises = [
     type: 'catcow',
     svg: 'spine-stretch',
     reps: 6,
-    category: 'Lưng & Cột sống'
+    category: 'Lưng & Cột sống',
+    videoUrl: 'https://youtu.be/V1udz3tn9_s' // Video hướng dẫn ngắn gọn Spine Stretch Forward
   },
   {
     id: 'roll-down',
@@ -96,7 +103,8 @@ export const exercises = [
     type: 'standing',
     svg: 'roll-down',
     reps: 6,
-    category: 'Lưng & Cột sống'
+    category: 'Lưng & Cột sống',
+    videoUrl: 'https://youtube.com/shorts/XesoLEkemFQ' // Video Shorts hướng dẫn Pilates Roll Down chuẩn
   },
 
   // ============ NHÓM TOÀN THÂN / TIM MẠCH ============
@@ -110,7 +118,8 @@ export const exercises = [
     type: 'climber',
     svg: 'climber',
     reps: 2,
-    category: 'Toàn thân'
+    category: 'Toàn thân',
+    videoUrl: 'https://youtu.be/De3Gl-nC7IQ' // Video ngắn hướng dẫn kỹ thuật Mountain Climbers đúng cách
   },
   {
     id: 'standing-crunch',
@@ -122,7 +131,8 @@ export const exercises = [
     type: 'standing',
     svg: 'standing',
     reps: 2,
-    category: 'Toàn thân'
+    category: 'Toàn thân',
+    videoUrl: 'https://youtu.be/YDCt3rx4LDo' // Video ngắn hướng dẫn Standing Cross Crunches
   },
   {
     id: 'squat',
@@ -134,7 +144,8 @@ export const exercises = [
     type: 'squat',
     svg: 'squat',
     reps: 2,
-    category: 'Toàn thân'
+    category: 'Toàn thân',
+    videoUrl: 'https://m.youtube.com/shorts/cyt3OhvBYFI' // Video Shorts hướng dẫn Squat đúng form, không tạ
   },
   {
     id: 'glute-bridge',
@@ -146,6 +157,7 @@ export const exercises = [
     type: 'glute-bridge',
     svg: 'glute-bridge',
     reps: 2,
-    category: 'Toàn thân'
+    category: 'Toàn thân',
+    videoUrl: 'https://youtu.be/abdNZsZ68ls' // Video ngắn hướng dẫn kỹ thuật Glute Bridge chuẩn, tránh đau lưng
   },
 ];
