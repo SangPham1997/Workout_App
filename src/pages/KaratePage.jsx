@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   useKarateSessions,
   useKarateIndex,
@@ -27,7 +28,7 @@ export default function KaratePage() {
   const selectedSession = useSelectedKarateSession();
   const selectSession = useSelectKarateSession();
 
-  // Progress + Notes (mới)
+  // Progress + Notes
   const completedIds = useKarateCompletedIds();
   const toggleComplete = useKarateToggleComplete();
   const notes = useKarateNotes();
@@ -41,19 +42,44 @@ export default function KaratePage() {
   const pauseTimer = usePauseTimer();
   const fullReset = useFullReset();
 
+  // Tuần đang chọn (mặc định theo buổi hiện tại)
+  const [currentWeek, setCurrentWeek] = useState(selectedSession?.week || 1);
+
+  // Đồng bộ currentWeek khi selectedSession thay đổi (ví dụ từ localStorage)
+  useEffect(() => {
+    if (selectedSession?.week && selectedSession.week !== currentWeek) {
+      setCurrentWeek(selectedSession.week);
+    }
+  }, [selectedSession?.id]);
+
   if (!selectedSession) {
     return <div className="text-white p-4">Đang tải...</div>;
   }
 
+  // Chọn buổi tập trong tuần hiện tại
   const handleSelect = (index) => {
     selectSession(index);
     fullReset();
+  };
+
+  // Chọn tuần → tự động nhảy đến buổi đầu tiên của tuần đó
+  const handleSelectWeek = (week) => {
+    setCurrentWeek(week);
+    const firstOfWeek = sessions.find((s) => s.week === week);
+    if (firstOfWeek) {
+      const idx = sessions.indexOf(firstOfWeek);
+      selectSession(idx);
+      fullReset();
+    }
   };
 
   const handleResetAndStart = () => {
     fullReset();
     startTimer();
   };
+
+  // Đếm số buổi & tuần để hiển thị header
+  const totalWeeks = [...new Set(sessions.map((s) => s.week))].length;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
@@ -72,13 +98,13 @@ export default function KaratePage() {
                   Karate <span className="text-rose-400">Training</span>
                 </h1>
                 <p className="text-xs text-slate-400 uppercase tracking-wider">
-                  7 buổi tập nền tảng • 4 tuần
+                  {sessions.length} buổi tập • {totalWeeks} tuần
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Chi tiết buổi tập — truyền đầy đủ props từ store */}
+          {/* Chi tiết buổi tập */}
           <KarateDetail
             session={selectedSession}
             isCompleted={completedIds.includes(selectedSession.id)}
@@ -105,6 +131,8 @@ export default function KaratePage() {
             currentIndex={selectedIndex}
             onSelect={handleSelect}
             completedIds={completedIds}
+            currentWeek={currentWeek}
+            onSelectWeek={handleSelectWeek}
           />
         </section>
       </main>
