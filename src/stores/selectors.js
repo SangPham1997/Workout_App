@@ -1,12 +1,8 @@
-/*
-  Selectors cho zustand store — tách riêng để dùng với hook selector.
-  Component chỉ subscribe đúng field nó cần → chỉ re-render khi giá trị đó đổi.
-*/
 import { useExerciseStore } from './useExerciseStore';
 import { useKarateStore } from './useKarateStore';
 import { useTimerStore } from '../hooks/useTimerStore';
 
-// ----- Exercise store -----
+// ===== Exercise store =====
 export const selectExercises = (s) => s.exercises;
 export const selectSelectedIndex = (s) => s.selectedIndex;
 export const selectSelectExercise = (s) => s.selectExercise;
@@ -17,7 +13,7 @@ export const useSelectedIndex = () => useExerciseStore(selectSelectedIndex);
 export const useSelectedExercise = () => useExerciseStore(selectSelectedExercise);
 export const useSelectExercise = () => useExerciseStore(selectSelectExercise);
 
-// ----- Timer store -----
+// ===== Timer store =====
 export const selectTimeLeft = (s) => s.timeLeft;
 export const selectIsRunning = (s) => s.isRunning;
 export const selectIsCompleted = (s) => s.isCompleted;
@@ -32,23 +28,21 @@ export const useStartTimer = () => useTimerStore(selectStartTimer);
 export const usePauseTimer = () => useTimerStore(selectPauseTimer);
 export const useFullReset = () => useTimerStore(selectFullReset);
 
-// ----- Karate store -----
+// ===== Karate store =====
 export const selectKarateSessions = (s) => s.sessions;
 export const selectKarateIndex = (s) => s.selectedIndex;
-export const selectKarateSession = (s) => s.selectSession;
+export const selectSelectKarateSession = (s) => s.selectSession;
 export const selectSelectedKarateSession = (s) => s.sessions[s.selectedIndex] || null;
+export const selectKarateCompletedIds = (s) => s.completedIds;
+export const selectKarateToggleComplete = (s) => s.toggleComplete;
+export const selectKarateNotes = (s) => s.notes;
+export const selectKarateSetNote = (s) => s.setNote;
 
 export const useKarateSessions = () => useKarateStore(selectKarateSessions);
 export const useKarateIndex = () => useKarateStore(selectKarateIndex);
 export const useSelectedKarateSession = () => useKarateStore(selectSelectedKarateSession);
-export const useSelectKarateSession = () => useKarateStore(selectKarateSession);
-
-const selectCompletedIds = (s) => s.completedIds;
-const selectToggleComplete = (s) => s.toggleComplete;
-const selectSetNote = (s) => s.setNote;
-
-export const useKarateCompletedIds = () => useKarateStore(selectCompletedIds);
-export const useToggleKarateComplete = () => useKarateStore(selectToggleComplete);
-export const useSetKarateNote = () => useKarateStore(selectSetNote);
-export const useKarateNoteFor = (id) =>
-  useKarateStore((s) => (id ? s.notes[id] || '' : ''));
+export const useSelectKarateSession = () => useKarateStore(selectSelectKarateSession);
+export const useKarateCompletedIds = () => useKarateStore(selectKarateCompletedIds);
+export const useKarateToggleComplete = () => useKarateStore(selectKarateToggleComplete);
+export const useKarateNotes = () => useKarateStore(selectKarateNotes);
+export const useKarateSetNote = () => useKarateStore(selectKarateSetNote);

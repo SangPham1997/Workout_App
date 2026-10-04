@@ -12,7 +12,7 @@ export default memo(function MiniTimer({ timeLeft, total, isRunning }) {
 
   return (
     <div
-      className="relative hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/70 border border-slate-700/60 overflow-hidden"
+      className="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/70 border border-slate-700/60 overflow-hidden"
       title="Thời gian còn lại của buổi tập"
     >
       <i
@@ -21,7 +21,7 @@ export default memo(function MiniTimer({ timeLeft, total, isRunning }) {
         } text-xs`}
       ></i>
       <span
-        className={`font-mono font-bold tabular-nums text-sm tracking-tight ${
+        className={`font-mono font-bold tabular-nums text-md tracking-tight ${
           isRunning ? 'text-white' : 'text-slate-300'
         }`}
       >

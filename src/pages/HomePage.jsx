@@ -15,6 +15,7 @@ import Footer from '../components/layout/Footer';
 import TimerControl from '../components/timer/TimerControl';
 import TechniqueGuide from '../components/simulator/TechniqueGuide';
 import ExerciseList from '../components/exercises/ExerciseList';
+import { getVideoEmbedUrl } from '../components/shared/getVideoEmbedUrl';
 
 function HomePage() {
   // Subscribe từng field nhỏ để tránh re-render cả cây khi không cần thiết.
@@ -31,26 +32,11 @@ function HomePage() {
   const selectedExercise = useMemo(() => exercises[selectedIndex] || null, [exercises, selectedIndex]);
 
   // Helper to convert YouTube URL to embed URL
-  const getVideoEmbedUrl = (url) => {
-    if (!url) return '';
-    // Handle youtu.be/ID
-    if (url.includes('youtu.be/')) {
-      const id = url.split('youtu.be/')[1].split('?')[0];
-      return `https://www.youtube.com/embed/${id}`;
-    }
-    // Handle youtube.com/watch?v=ID
-    if (url.includes('youtube.com/watch?v=')) {
-      const id = url.split('v=')[1].split('&')[0];
-      return `https://www.youtube.com/embed/${id}`;
-    }
-    // Handle youtube.com/shorts/ID (can embed as well)
-    if (url.includes('youtube.com/shorts/')) {
-      const id = url.split('shorts/')[1].split('?')[0];
-      return `https://www.youtube.com/embed/${id}`;
-    }
-    // Fallback: return original URL (might already be embed)
-    return url;
-  };
+  const embedUrl = useMemo(() => {
+    if (!selectedExercise) return '';
+    const url = selectedExercise.videoUrl;
+    return getVideoEmbedUrl(url, { autoplay: false, mute: true, loop: true, controls: true });
+  }, [selectedExercise]);
 
   // Callback ổn định — giúp React.memo ở ExerciseList / ExerciseItem có tác dụng.
   const handleSelectExercise = useCallback(
@@ -91,7 +77,7 @@ function HomePage() {
             <div className="w-full flex-1 flex items-center justify-center p-2">
               <iframe
                 className="w-full aspect-video rounded-2xl border border-slate-700/50"
-                src={getVideoEmbedUrl(selectedExercise.videoUrl)}
+                src={embedUrl}
                 title={selectedExercise.name}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import ExerciseBadge from '../shared/ExerciseBadge';
 
 /* memo: chỉ re-render khi props thật sự đổi (active item, handler ổn định từ App). */
 function ExerciseItem({ exercise, currentIndex, onSelect, idx }) {
@@ -16,8 +15,6 @@ function ExerciseItem({ exercise, currentIndex, onSelect, idx }) {
                         }`}>
                         {idx + 1}
                     </div>
-                    {/* thumbnail SVG minh họa động tác */}
-                    <ExerciseBadge type={exercise.type} active={isActive} />
                     <span className={`text-sm font-medium truncate ${isActive ? 'text-white' : 'text-slate-300'}`}>
                         {exercise.name}
                     </span>
