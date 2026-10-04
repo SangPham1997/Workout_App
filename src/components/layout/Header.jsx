@@ -27,11 +27,11 @@ export default memo(function Header() {
         {/* Logo + tên app */}
         <NavLink to="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:bg-emerald-500/30 transition">
-            <i className="fa-solid fa-person-biking"></i>
+            <i className="fa-solid fa-person"></i>
           </div>
           <div className="hidden sm:block">
             <h1 className="text-base md:text-lg font-bold text-white tracking-tight leading-tight">
-              HomeCycle <span className="text-emerald-400">Pro</span>
+              Home Workout <span className="text-emerald-400">Pro</span>
             </h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-wider">
               Mô phỏng tập luyện
