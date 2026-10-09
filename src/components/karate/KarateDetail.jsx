@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { getVideoEmbedUrl } from '../shared/getVideoEmbedUrl';
 
 const EXERCISE_ICONS = {
@@ -26,7 +26,7 @@ const getFirstVideoExercise = (session) => {
   return session.exercises.find((e) => e.videoUrl) || null;
 };
 
-export default function KarateDetail({
+function KarateDetail({
   session,
   isCompleted,
   onToggleComplete,
@@ -40,17 +40,21 @@ export default function KarateDetail({
   const [syncedId, setSyncedId] = useState(session?.id);
 
   // Đồng bộ khi đổi buổi — reset activeIndex + note + video state
-  if (session?.id !== syncedId) {
-    setSyncedId(session?.id);
-    setActiveIndex(0);
-    setVideoFailed(false);
-    setNoteText(note || '');
-  }
+  useEffect(() => {
+    if (session?.id !== syncedId) {
+      setSyncedId(session?.id);
+      setActiveIndex(0);
+      setVideoFailed(false);
+      setNoteText(note || '');
+    }
+  }, [session?.id, syncedId, note]);
 
   // Đồng bộ note khi note prop thay đổi từ bên ngoài (ví dụ load lần đầu)
-  if (note !== undefined && note !== noteText && session?.id === syncedId && !noteText) {
-    setNoteText(note);
-  }
+  useEffect(() => {
+    if (note !== undefined && note !== noteText && session?.id === syncedId && !noteText) {
+      setNoteText(note);
+    }
+  }, [note, noteText, session?.id, syncedId]);
 
   if (!session) return null;
 
@@ -60,20 +64,20 @@ export default function KarateDetail({
   const videoExercise = currentExercise?.videoUrl ? currentExercise : fallbackExercise;
   const currentVideoUrl = getVideoEmbedUrl(videoExercise?.videoUrl, { autoplay: false, mute: true, loop: true, controls: true }) || '';
 
-  const handleNoteBlur = () => {
+  const handleNoteBlur = useCallback(() => {
     if (noteText !== note) onNoteChange(noteText);
-  };
+  }, [noteText, note, onNoteChange]);
 
-  const handleSelectExercise = (index) => {
+  const handleSelectExercise = useCallback((index) => {
     const ex = session.exercises[index];
     if (!ex?.videoUrl) return;
     setActiveIndex(index);
     setVideoFailed(false);
-  };
+  }, [session.exercises]);
 
-  const handleToggleComplete = () => {
+  const handleToggleComplete = useCallback(() => {
     onToggleComplete();
-  };
+  }, [onToggleComplete]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -289,3 +293,5 @@ export default function KarateDetail({
     </div>
   );
 }
+
+export default memo(KarateDetail);

@@ -1,20 +1,7 @@
-import { useState, useEffect } from 'react';
-import {
-  useKarateSessions,
-  useKarateIndex,
-  useSelectKarateSession,
-  useSelectedKarateSession,
-  useKarateCompletedIds,
-  useKarateToggleComplete,
-  useKarateNotes,
-  useKarateSetNote,
-  useTimeLeft,
-  useIsRunning,
-  useIsCompleted,
-  useStartTimer,
-  usePauseTimer,
-  useFullReset,
-} from '../stores/selectors';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { useKarateStore } from '../stores/useKarateStore';
+import { useTimerStore } from '../hooks/useTimerStore';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import TimerControl from '../components/timer/TimerControl';
@@ -22,64 +9,115 @@ import KarateSessionList from '../components/karate/KarateSessionList';
 import KarateDetail from '../components/karate/KarateDetail';
 
 export default function KaratePage() {
-  // Karate store
-  const sessions = useKarateSessions();
-  const selectedIndex = useKarateIndex();
-  const selectedSession = useSelectedKarateSession();
-  const selectSession = useSelectKarateSession();
+  // Combined Karate store subscription - single re-render for all karate state
+  const {
+    sessions,
+    selectedIndex,
+    selectedSession: selectedSessionFromStore,
+    selectSession,
+    completedIds,
+    toggleComplete,
+    notes,
+    setNote,
+  } = useKarateStore(
+    useShallow((state) => ({
+      sessions: state.sessions,
+      selectedIndex: state.selectedIndex,
+      selectedSession: state.sessions[state.selectedIndex] || null,
+      selectSession: state.selectSession,
+      completedIds: state.completedIds,
+      toggleComplete: state.toggleComplete,
+      notes: state.notes,
+      setNote: state.setNote,
+    }))
+  );
 
-  // Progress + Notes
-  const completedIds = useKarateCompletedIds();
-  const toggleComplete = useKarateToggleComplete();
-  const notes = useKarateNotes();
-  const setNote = useKarateSetNote();
-
-  // Timer store
-  const timeLeft = useTimeLeft();
-  const isRunning = useIsRunning();
-  const isCompleted = useIsCompleted();
-  const startTimer = useStartTimer();
-  const pauseTimer = usePauseTimer();
-  const fullReset = useFullReset();
+  // Combined Timer store subscription
+  const {
+    timeLeft,
+    isRunning,
+    isCompleted,
+    startTimer,
+    pauseTimer,
+    fullReset,
+  } = useTimerStore(
+    useShallow((state) => ({
+      timeLeft: state.timeLeft,
+      isRunning: state.isRunning,
+      isCompleted: state.isCompleted,
+      startTimer: state.startTimer,
+      pauseTimer: state.pauseTimer,
+      fullReset: state.fullReset,
+    }))
+  );
 
   // Tuần đang chọn (mặc định theo buổi hiện tại)
-  const [currentWeek, setCurrentWeek] = useState(selectedSession?.week || 1);
+  const [currentWeek, setCurrentWeek] = useState(selectedSessionFromStore?.week || 1);
 
   // Đồng bộ currentWeek khi selectedSession thay đổi (ví dụ từ localStorage)
   useEffect(() => {
-    if (selectedSession?.week && selectedSession.week !== currentWeek) {
-      setCurrentWeek(selectedSession.week);
+    if (selectedSessionFromStore?.week && selectedSessionFromStore.week !== currentWeek) {
+      setCurrentWeek(selectedSessionFromStore.week);
     }
-  }, [selectedSession?.id]);
+  }, [selectedSessionFromStore?.id]);
 
-  if (!selectedSession) {
+  if (!selectedSessionFromStore) {
     return <div className="text-white p-4">Đang tải...</div>;
   }
 
-  // Chọn buổi tập trong tuần hiện tại
-  const handleSelect = (index) => {
-    selectSession(index);
-    fullReset();
-  };
+  // Memoize derived values to avoid recalculation on every render
+  const totalWeeks = useMemo(
+    () => new Set(sessions.map((s) => s.week)).size,
+    [sessions]
+  );
 
-  // Chọn tuần → tự động nhảy đến buổi đầu tiên của tuần đó
-  const handleSelectWeek = (week) => {
-    setCurrentWeek(week);
-    const firstOfWeek = sessions.find((s) => s.week === week);
-    if (firstOfWeek) {
-      const idx = sessions.indexOf(firstOfWeek);
-      selectSession(idx);
+  const isCurrentSessionCompleted = useMemo(
+    () => completedIds.includes(selectedSessionFromStore.id),
+    [completedIds, selectedSessionFromStore.id]
+  );
+
+  const currentSessionNote = useMemo(
+    () => notes[selectedSessionFromStore.id] || '',
+    [notes, selectedSessionFromStore.id]
+  );
+
+  // Stable callbacks using useCallback to prevent child re-renders
+  const handleSelect = useCallback(
+    (index) => {
+      selectSession(index);
       fullReset();
-    }
-  };
+    },
+    [selectSession, fullReset]
+  );
 
-  const handleResetAndStart = () => {
+  const handleSelectWeek = useCallback(
+    (week) => {
+      setCurrentWeek(week);
+      const firstOfWeek = sessions.find((s) => s.week === week);
+      if (firstOfWeek) {
+        const idx = sessions.indexOf(firstOfWeek);
+        selectSession(idx);
+        fullReset();
+      }
+    },
+    [sessions, selectSession, fullReset]
+  );
+
+  const handleResetAndStart = useCallback(() => {
     fullReset();
     startTimer();
-  };
+  }, [fullReset, startTimer]);
 
-  // Đếm số buổi & tuần để hiển thị header
-  const totalWeeks = [...new Set(sessions.map((s) => s.week))].length;
+  const handleToggleComplete = useCallback(() => {
+    toggleComplete(selectedSessionFromStore.id);
+  }, [toggleComplete, selectedSessionFromStore.id]);
+
+  const handleNoteChange = useCallback(
+    (text) => {
+      setNote(selectedSessionFromStore.id, text);
+    },
+    [setNote, selectedSessionFromStore.id]
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
@@ -106,17 +144,17 @@ export default function KaratePage() {
 
           {/* Chi tiết buổi tập */}
           <KarateDetail
-            session={selectedSession}
-            isCompleted={completedIds.includes(selectedSession.id)}
-            onToggleComplete={() => toggleComplete(selectedSession.id)}
-            note={notes[selectedSession.id] || ''}
-            onNoteChange={(text) => setNote(selectedSession.id, text)}
+            session={selectedSessionFromStore}
+            isCompleted={isCurrentSessionCompleted}
+            onToggleComplete={handleToggleComplete}
+            note={currentSessionNote}
+            onNoteChange={handleNoteChange}
           />
 
           <TimerControl
             timeLeft={timeLeft}
             isRunning={isRunning}
-            total={selectedSession.duration}
+            total={selectedSessionFromStore.duration}
             isCompleted={isCompleted}
             onStart={startTimer}
             onPause={pauseTimer}
