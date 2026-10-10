@@ -84,55 +84,55 @@ export const karateSessions = [
 
   {
     id: 'kt-04',
-    name: 'Nhập môn Kata (Basic Kata)',
-    subName: 'Training at home with Huglo Paul & Kanazawa Hiyori sensei',
-    target: 'Nhịp điệu, hơi thở, trí nhớ vận động, hình quyền',
+    name: 'Heian Shodan (Bình an Sơ đoạn)',
+    subName: 'Kata nền tảng thứ hai, xây dựng sự tự tin và kỹ thuật nâng cao hơn',
+    target: 'Chuyển đổi tấn pháp, kỹ thuật chặn (Uchi Uke, Gedan Barai), đấm nghịch tay (Gyaku Zuki) và sự tập trung (Kime)',
     duration: 900,
     durationDisplay: '15 phút (Lặp lại)',
-    category: 'Nâng cao',
+    category: 'Nhập môn',
     week: 2,
-    level: 'Intermediate',
+    level: 'Beginner',
     type: 'karate',
-    icon: 'fa-wind',
+    icon: 'fa-fist-raised',
     equipment: 'Không',
-    source: 'SKIF Official',
+    source: 'Shotokan Karate Tutorial / SKIF',
     guide:
-      'Video hướng dẫn Kata tại nhà với phụ đề tiếng Anh. Video gốc ngắn (~4 phút), hãy xem kỹ và lặp lại nhiều lần để ghi nhớ chuỗi động tác.',
+      'Video hướng dẫn chi tiết từng động tác của Heian Shodan. Đây là kata quan trọng nhất để xây dựng nền tảng kỹ thuật Shotokan, hãy tập chậm rãi để ghi nhớ chuỗi động tác trước khi tăng tốc độ.',
     exercises: [
       {
-        name: 'Kata Training (Chính)',
+        name: 'Heian Shodan Kata',
         work: '15 phút',
         note:
-          'Xem và tập mô phỏng theo. Chú ý hướng di chuyển, nhịp thở và tư thế (dachi) chuẩn xác.',
-        videoUrl: 'https://www.youtube.com/watch?v=6pOlcZkj_68',
+          'Chú ý kỹ thuật xoay hông khi đấm nghịch tay và sự ổn định khi chuyển đổi giữa các tấn pháp. Giữ sự tập trung cao độ tại điểm kết thúc của mỗi kỹ thuật.',
+        videoUrl: 'https://www.youtube.com/watch?v=I3PpjiCL1vE',
       },
     ],
   },
 
-  // ============ TUẦN 3: THỂ LỰC & HIIT ============
+  // ============ TUẦN 3: KATA & THỂ LỰC ============
   {
     id: 'kt-05',
-    name: 'Karate HIIT & Đốt mỡ',
-    subName: '15min HIIT Class',
-    target: 'Tim mạch, sức bền, tốc độ',
-    duration: 1020,
-    durationDisplay: '17 phút',
-    category: 'HIIT',
+    name: 'Taikyoku Shodan (Cực đại Sơ đoạn)',
+    subName: 'Kata nền tảng đầu tiên trong hệ thống Shotokan',
+    target: 'Tấn pháp (Zenkutsu Dachi), kỹ thuật gạt xuống (Gedan Barai), đấm thẳng (Oi Zuki), nhịp điệu và hơi thở cơ bản',
+    duration: 900,
+    durationDisplay: '15 phút (Lặp lại)',
+    category: 'Nhập môn',
     week: 3,
-    level: 'Intermediate',
-    type: 'hiit',
-    icon: 'fa-heart-pulse',
-    equipment: 'Thảm tập',
-    source: 'Karate Training',
+    level: 'Beginner',
+    type: 'karate',
+    icon: 'fa-shoe-prints',
+    equipment: 'Không',
+    source: 'Shotokan Karate Tutorial / SKIF',
     guide:
-      'Đẩy giới hạn bản thân với cường độ cao. Có thể tập 2 hiệp (round) để thành một buổi tập hoàn chỉnh.',
+      'Video hướng dẫn chậm rãi, dễ theo dõi. Taikyoku Shodan chỉ gồm 2 động tác chính lặp lại trên một đường di chuyển (Embusen) hình chữ I. Đây là bài tập hoàn hảo để rèn luyện kỷ luật và sự ổn định.',
     exercises: [
       {
-        name: 'HIIT Class (Chính)',
-        work: '17 phút',
+        name: 'Taikyoku Shodan Kata',
+        work: '15 phút',
         note:
-          'Tập theo khả năng, ưu tiên kỹ thuật chính xác. Giảm tốc độ nếu nhịp tim quá cao, có thể lặp lại 2 lần.',
-        videoUrl: 'https://www.youtube.com/watch?v=qey5SM0i0jc',
+          'Tập trung vào việc giữ trọng tâm thấp, dứt khoát ở mỗi động tác và phối hợp nhịp thở với kỹ thuật. Hãy quay lại video của chính bạn để tự đối chiếu.',
+        videoUrl: 'https://www.youtube.com/watch?v=jH6bv4GDpp0',
       },
     ],
   },
@@ -195,6 +195,7 @@ export const karateSessions = [
 
 export const karateCategories = [
   'Nền tảng',
+  'Nhập môn',
   'Kỹ thuật',
   'Thể lực',
   'HIIT',
