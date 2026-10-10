@@ -11,6 +11,7 @@ export const useExerciseStore = create(
     (set, get) => ({
       exercises: initialExercises,
       selectedIndex: 0,
+      completedWeeks: [], // [1, 2, 3, 4]
 
       selectExercise: (index) => set({ selectedIndex: index }),
 
@@ -20,10 +21,17 @@ export const useExerciseStore = create(
         // Trả về object "gốc" đã memo (tham chiếu ổn định).
         return ex ? exercisesById.get(ex.id) || ex : null;
       },
+
+      toggleWeekComplete: (weekNum) =>
+      set((state) => ({
+        completedWeeks: state.completedWeeks.includes(weekNum)
+          ? state.completedWeeks.filter((w) => w !== weekNum)
+          : [...state.completedWeeks, weekNum],
+      })),
     }),
     {
       name: 'exercise-storage',
-      partialize: (state) => ({ selectedIndex: state.selectedIndex }),
+      partialize: (state) => ({ selectedIndex: state.selectedIndex, completedWeeks: state.completedWeeks }),
     }
   )
 );

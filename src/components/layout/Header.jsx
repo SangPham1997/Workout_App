@@ -56,7 +56,7 @@ export default memo(function Header() {
             }
           >
             <i className="fa-solid fa-person-biking text-xs"></i>
-            <span className="hidden xs:inline">HIIT</span>
+            <span className="hidden xs:inline">Exercises</span>
           </NavLink>
 
           <NavLink
