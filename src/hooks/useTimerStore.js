@@ -17,93 +17,189 @@ const getActiveSession = () => {
   return useExerciseStore.getState().getSelectedExercise();
 };
 
+/**
+ * Chuẩn hóa config từ session.
+ * Karate sessions có thể không có `sets` / `rest` → fallback 1 hiệp, không nghỉ.
+ * HIIT exercises có schema mới → dùng trực tiếp.
+ */
+const getSessionConfig = (session) => {
+  if (!session) {
+    return { workDuration: 30, restDuration: 0, totalSets: 1 };
+  }
+  return {
+    workDuration: session.duration || 30,
+    restDuration: session.rest ?? 0,
+    totalSets: session.sets ?? 1,
+  };
+};
+
+// Interval ID để ngoài state — tránh re-render không cần thiết
+let intervalId = null;
+
+const clearTimer = () => {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+};
+
+/**
+ * State machine:
+ *   idle → work(set 1) → rest → work(set 2) → … → work(set N) → completed
+ *
+ * - Nếu restDuration = 0 → bỏ qua phase rest.
+ * - Nếu totalSets = 1 → chạy 1 hiệp duy nhất (giống store cũ).
+ */
 export const useTimerStore = create((set, get) => ({
-  timeLeft: 30,
+  // ===== CONFIG (được set khi bắt đầu / reset) =====
+  workDuration: 30,   // giây/hiệp
+  restDuration: 0,    // giây nghỉ giữa hiệp
+  totalSets: 1,       // số hiệp
+
+  // ===== RUNTIME =====
+  phase: 'idle',      // 'idle' | 'work' | 'rest' | 'completed'
+  currentSet: 1,      // 1..totalSets
+  timeLeft: 30,       // giây còn lại của phase hiện tại
   isRunning: false,
   isCompleted: false,
-  intervalId: null,
+
+  // ===== ACTIONS =====
 
   startTimer: () => {
-    const { isRunning, isCompleted, timeLeft: currentTimeLeft } = get();
-    if (isRunning || isCompleted) return;
+    const { isRunning, phase } = get();
+    if (isRunning || phase === 'completed') return;
 
-    const exercise = getActiveSession();
-    if (!exercise) return;
+    const session = getActiveSession();
+    if (!session) return;
 
-    const duration = exercise.duration || 30;
+    const config = getSessionConfig(session);
 
-    // Nếu timeLeft đang bằng duration (chưa từng chạy) hoặc đã hoàn thành,
-    // reset về duration. Ngược lại giữ nguyên để tiếp tục.
-    if (currentTimeLeft === duration || isCompleted) {
-      set({ timeLeft: duration, isCompleted: false });
+    if (phase === 'idle') {
+      // Bắt đầu từ đầu
+      set({
+        workDuration: config.workDuration,
+        restDuration: config.restDuration,
+        totalSets: config.totalSets,
+        phase: 'work',
+        currentSet: 1,
+        timeLeft: config.workDuration,
+        isRunning: true,
+        isCompleted: false,
+      });
     } else {
-      set({ isCompleted: false });
+      // Resume từ pause (work hoặc rest)
+      set({ isRunning: true });
     }
 
-    // Clear interval cũ nếu còn
-    const { intervalId } = get();
-    if (intervalId) {
-      clearInterval(intervalId);
-      set({ intervalId: null });
+    clearTimer();
+    intervalId = setInterval(() => get().tick(), 1000);
+  },
+
+  pauseTimer: () => {
+    clearTimer();
+    set({ isRunning: false });
+  },
+
+  /**
+   * Tick mỗi giây — xử lý transition giữa các phase.
+   * Không dùng ở ngoài, chỉ gọi từ interval trong startTimer.
+   */
+  tick: () => {
+    const {
+      timeLeft,
+      phase,
+      currentSet,
+      totalSets,
+      workDuration,
+      restDuration,
+    } = get();
+
+    if (phase === 'idle' || phase === 'completed') {
+      clearTimer();
+      return;
     }
 
-    const id = setInterval(() => {
-      const state = get();
-      const { timeLeft, isCompleted: comp } = state;
-      const sessionNow = getActiveSession();
-      if (!sessionNow || comp) {
-        clearInterval(id);
-        set({ intervalId: null, isRunning: false });
-        return;
-      }
+    // Còn thời gian → giảm 1 giây
+    if (timeLeft > 1) {
+      set({ timeLeft: timeLeft - 1 });
+      return;
+    }
 
-      if (timeLeft > 0) {
-        set({ timeLeft: timeLeft - 1 });
+    // timeLeft === 1 → chuyển phase
+    if (phase === 'work') {
+      if (currentSet < totalSets) {
+        if (restDuration > 0) {
+          // Sang phase nghỉ
+          set({ phase: 'rest', timeLeft: restDuration });
+        } else {
+          // Không có nghỉ → sang set kế tiếp luôn
+          set({
+            phase: 'work',
+            currentSet: currentSet + 1,
+            timeLeft: workDuration,
+          });
+        }
       } else {
-        clearInterval(id);
+        // Hết set cuối → hoàn thành
+        clearTimer();
         set({
-          intervalId: null,
+          phase: 'completed',
+          timeLeft: 0,
           isRunning: false,
           isCompleted: true,
         });
       }
-    }, 1000);
-
-    set({ intervalId: id, isRunning: true });
-  },
-
-  pauseTimer: () => {
-    const { intervalId } = get();
-    if (intervalId) {
-      clearInterval(intervalId);
-      set({ intervalId: null, isRunning: false });
+    } else if (phase === 'rest') {
+      // Hết nghỉ → sang set kế tiếp
+      set({
+        phase: 'work',
+        currentSet: currentSet + 1,
+        timeLeft: workDuration,
+      });
     }
   },
 
-  resetTimer: (duration) => {
-    const { intervalId } = get();
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
+  /**
+   * Reset hoàn toàn về idle, dựa trên session hiện tại.
+   * Gọi khi user chọn bài khác hoặc nhấn nút Reset.
+   */
+  fullReset: () => {
+    clearTimer();
+    const session = getActiveSession();
+    const config = getSessionConfig(session);
     set({
-      intervalId: null,
+      workDuration: config.workDuration,
+      restDuration: config.restDuration,
+      totalSets: config.totalSets,
+      phase: 'idle',
+      currentSet: 1,
+      timeLeft: config.workDuration,
       isRunning: false,
       isCompleted: false,
-      timeLeft: duration || 30,
     });
   },
 
-  fullReset: () => {
-    const { intervalId } = get();
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
-    const session = getActiveSession();
+  /**
+   * Reset rồi start ngay — dùng cho nút "Bắt đầu lại" khi đã hoàn thành.
+   */
+  resetAndStart: () => {
+    get().fullReset();
+    get().startTimer();
+  },
+
+  /**
+   * Compat shim — giữ signature cũ nếu còn chỗ gọi `resetTimer(duration)`.
+   * @deprecated Dùng `fullReset()` thay thế.
+   */
+  resetTimer: (duration) => {
+    clearTimer();
+    const d = duration || get().workDuration;
     set({
-      intervalId: null,
+      phase: 'idle',
+      currentSet: 1,
+      timeLeft: d,
       isRunning: false,
       isCompleted: false,
-      timeLeft: session?.duration || 30,
     });
   },
 }));

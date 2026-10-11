@@ -1,25 +1,64 @@
 import { memo } from 'react';
 
+const PHASE_STYLES = {
+  idle: {
+    label: 'Sẵn sàng',
+    icon: 'fa-hourglass-start',
+    badgeClass: 'bg-slate-700/50 text-slate-300 border-slate-600/50',
+    barClass: 'bg-slate-500',
+    timeClass: 'text-white',
+  },
+  work: {
+    label: 'Đang tập',
+    icon: 'fa-fire',
+    badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    barClass: 'bg-emerald-500',
+    timeClass: 'text-white',
+  },
+  rest: {
+    label: 'Nghỉ',
+    icon: 'fa-mug-hot',
+    badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+    barClass: 'bg-amber-500',
+    timeClass: 'text-amber-300',
+  },
+  completed: {
+    label: 'Hoàn thành',
+    icon: 'fa-circle-check',
+    badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    barClass: 'bg-emerald-400',
+    timeClass: 'text-emerald-400',
+  },
+};
+
 function TimerControlInner({
+  phase = 'idle',
+  currentSet = 1,
+  totalSets = 1,
   timeLeft,
+  workDuration,
+  restDuration = 0,
+  mode = 'time',
+  reps = null,
   isRunning,
-  total,
   isCompleted,
   onStart,
   onPause,
   onReset,
   onResetAndStart,
 }) {
-  const percent = total > 0 ? (timeLeft / total) * 100 : 0;
+  // Phase hiện tại dùng duration nào
+  const phaseDuration = phase === 'rest' ? restDuration : workDuration;
+  const percent =
+    phaseDuration > 0 ? Math.max(0, (timeLeft / phaseDuration) * 100) : 0;
+
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const secs = String(timeLeft % 60).padStart(2, '0');
 
-  let buttonLabel;
-  let buttonIcon;
-  let buttonClass;
-  const isDisabled = false;
-  let onClick;
+  const meta = PHASE_STYLES[phase] ?? PHASE_STYLES.idle;
 
+  // ===== BUTTON LOGIC =====
+  let buttonLabel, buttonIcon, buttonClass, onClick;
   if (isRunning) {
     buttonLabel = 'Tạm dừng';
     buttonIcon = 'fa-pause';
@@ -29,12 +68,12 @@ function TimerControlInner({
     buttonLabel = 'Bắt đầu lại';
     buttonIcon = 'fa-rotate-right';
     buttonClass = 'bg-blue-500 hover:bg-blue-400 text-white';
-    onClick = onResetAndStart; // reset + start
-  } else if (timeLeft < total && timeLeft > 0) {
+    onClick = onResetAndStart;
+  } else if (phase !== 'idle' && timeLeft > 0 && timeLeft < phaseDuration) {
     buttonLabel = 'Tiếp tục';
     buttonIcon = 'fa-play';
     buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
-    onClick = onStart; // chỉ tiếp tục, không reset
+    onClick = onStart;
   } else {
     buttonLabel = 'Bắt đầu';
     buttonIcon = 'fa-play';
@@ -42,35 +81,108 @@ function TimerControlInner({
     onClick = onStart;
   }
 
+  // ===== SET INDICATOR =====
+  const setDots = Array.from({ length: totalSets }, (_, i) => i + 1);
+
+  // ===== REPS HINT (chỉ khi mode='reps' và đang work) =====
+  const showRepsHint =
+    mode === 'reps' && reps != null && (phase === 'work' || phase === 'idle');
+
+  // Set label hiển thị: "Hiệp 1/2" hoặc "Nghỉ" hoặc "Hoàn thành"
+  const setLabel = (() => {
+    if (phase === 'idle') return 'Sẵn sàng bắt đầu';
+    if (phase === 'completed') return `Đã xong ${totalSets} hiệp`;
+    if (phase === 'rest') return `Nghỉ trước hiệp ${currentSet + 1}/${totalSets}`;
+    return `Hiệp ${currentSet}/${totalSets}`;
+  })();
+
   return (
-    <div className="bg-slate-800/60 backdrop-blur-sm rounded-3xl p-6 border border-slate-700/50 shadow-lg" role="timer" aria-live="polite" aria-label={`Thời gian còn lại ${mins} phút ${secs} giây`}>
+    <div
+      className="bg-slate-800/60 backdrop-blur-sm rounded-3xl p-6 border border-slate-700/50 shadow-lg"
+      role="timer"
+      aria-live="polite"
+      aria-label={`${meta.label}, ${setLabel}, còn ${mins} phút ${secs} giây`}
+    >
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col gap-2 w-full md:w-auto">
+        {/* ===== LEFT: TIME + PROGRESS ===== */}
+        <div className="flex flex-col gap-3 w-full md:w-auto">
+          {/* Badge + set label */}
+          <div className="flex items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${meta.badgeClass}`}
+            >
+              <i className={`fa-solid ${meta.icon} text-[10px]`} aria-hidden="true" />
+              {meta.label}
+            </span>
+            <span className="text-xs text-slate-400 font-medium">
+              {setLabel}
+            </span>
+          </div>
+
+          {/* Time + set dots */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-400" aria-hidden="true">
-              <i className="fa-regular fa-clock text-xl"></i>
-            </div>
-            <div>
-              <span className="text-xs text-slate-400 block uppercase tracking-widest mb-0.5">
-                {isCompleted ? 'Hoàn thành' : 'Thời gian còn lại'}
-              </span>
-              <span className={`text-4xl font-mono font-bold tabular-nums tracking-tight ${isCompleted ? 'text-emerald-400' : 'text-white'}`}>
+            <div className="flex flex-col">
+              <span className={`text-4xl font-mono font-bold tabular-nums tracking-tight ${meta.timeClass}`}>
                 {mins}:{secs}
               </span>
+              {showRepsHint && (
+                <span className="text-[11px] text-slate-400 mt-0.5">
+                  Mục tiêu: <span className="text-emerald-400 font-semibold">{reps} lần</span>
+                </span>
+              )}
             </div>
+
+            {/* Set dots */}
+            {totalSets > 1 && (
+              <div
+                className="flex items-center gap-1.5"
+                aria-label={`Tiến độ hiệp: ${currentSet}/${totalSets}`}
+              >
+                {setDots.map((s) => {
+                  const isDone =
+                    phase === 'completed' || s < currentSet;
+                  const isActive = !isDone && s === currentSet;
+                  return (
+                    <span
+                      key={s}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        isDone
+                          ? 'bg-emerald-500'
+                          : isActive
+                          ? 'bg-emerald-400 ring-2 ring-emerald-400/40 scale-125'
+                          : 'bg-slate-600'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <div className="w-full max-w-[200px] md:max-w-[250px] h-2 bg-slate-700 rounded-full overflow-hidden" role="progressbar" aria-valuenow={timeLeft} aria-valuemin={0} aria-valuemax={total} aria-label="Tiến độ bài tập">
-            <div className={`h-full transition-all duration-1000 ${isCompleted ? 'bg-emerald-400' : 'bg-emerald-500'}`} style={{ width: `${percent}%` }} aria-hidden="true"></div>
+
+          {/* Progress bar */}
+          <div
+            className="w-full max-w-[280px] h-2 bg-slate-700 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-valuenow={timeLeft}
+            aria-valuemin={0}
+            aria-valuemax={phaseDuration}
+            aria-label="Tiến độ phase hiện tại"
+          >
+            <div
+              className={`h-full transition-all duration-1000 ${meta.barClass}`}
+              style={{ width: `${percent}%` }}
+              aria-hidden="true"
+            />
           </div>
         </div>
 
+        {/* ===== RIGHT: BUTTONS ===== */}
         <div className="flex gap-3 w-full md:w-auto">
           <button
             onClick={onClick}
-            disabled={isDisabled}
             className={`flex-1 md:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] ${buttonClass}`}
           >
-            <i className={`fa-solid ${buttonIcon} text-sm`} aria-hidden="true"></i>
+            <i className={`fa-solid ${buttonIcon} text-sm`} aria-hidden="true" />
             <span>{buttonLabel}</span>
           </button>
           <button
@@ -78,7 +190,7 @@ function TimerControlInner({
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
             aria-label="Đặt lại bộ đếm"
           >
-            <i className="fa-solid fa-rotate-right" aria-hidden="true"></i>
+            <i className="fa-solid fa-rotate-right" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -86,27 +198,4 @@ function TimerControlInner({
   );
 }
 
-// Custom comparison: only re-render when props that affect UI actually change
-// timeLeft changes every second, but we only need to re-render when the formatted time (mins:secs) changes
-// or when isRunning/isCompleted/total change
-const arePropsEqual = (prev, next) => {
-  // Compare formatted time (minute:second) instead of raw seconds
-  const prevMins = String(Math.floor(prev.timeLeft / 60)).padStart(2, '0');
-  const prevSecs = String(prev.timeLeft % 60).padStart(2, '0');
-  const nextMins = String(Math.floor(next.timeLeft / 60)).padStart(2, '0');
-  const nextSecs = String(next.timeLeft % 60).padStart(2, '0');
-  
-  return (
-    prevMins === nextMins &&
-    prevSecs === nextSecs &&
-    prev.isRunning === next.isRunning &&
-    prev.isCompleted === next.isCompleted &&
-    prev.total === next.total &&
-    prev.onStart === next.onStart &&
-    prev.onPause === next.onPause &&
-    prev.onReset === next.onReset &&
-    prev.onResetAndStart === next.onResetAndStart
-  );
-};
-
-export default memo(TimerControlInner, arePropsEqual);
+export default memo(TimerControlInner);

@@ -9,7 +9,6 @@ import ExerciseList from '../components/exercises/ExerciseList';
 import TechniqueGuide from '../components/simulator/TechniqueGuide';
 import { getVideoEmbedUrl } from '../components/shared/getVideoEmbedUrl';
 
-// Module-level constant — tránh tạo object mỗi lần render
 const EMBED_OPTIONS = {
   autoplay: false,
   mute: true,
@@ -18,7 +17,7 @@ const EMBED_OPTIONS = {
 };
 
 function HomePage() {
-  // ===== EXERCISE STORE — gộp 1 subscription =====
+  // ===== EXERCISE STORE =====
   const {
     exercises,
     selectedIndex,
@@ -37,26 +36,39 @@ function HomePage() {
     }))
   );
 
-  // ===== TIMER STORE — gộp 1 subscription =====
+  // ===== TIMER STORE =====
+  // Không cần `configure` — store tự đọc session qua getActiveSession()
   const {
+    phase,
+    currentSet,
+    totalSets,
     timeLeft,
+    workDuration,
+    restDuration,
     isRunning,
     isCompleted,
     startTimer,
     pauseTimer,
     fullReset,
+    resetAndStart,
   } = useTimerStore(
     useShallow((state) => ({
+      phase: state.phase,
+      currentSet: state.currentSet,
+      totalSets: state.totalSets,
       timeLeft: state.timeLeft,
+      workDuration: state.workDuration,
+      restDuration: state.restDuration,
       isRunning: state.isRunning,
       isCompleted: state.isCompleted,
       startTimer: state.startTimer,
       pauseTimer: state.pauseTimer,
       fullReset: state.fullReset,
+      resetAndStart: state.resetAndStart,
     }))
   );
 
-  // ===== EMBED URL — memo theo selectedExercise =====
+  // ===== EMBED URL =====
   const embedUrl = useMemo(
     () =>
       selectedExercise
@@ -69,15 +81,15 @@ function HomePage() {
   const handleSelectExercise = useCallback(
     (index) => {
       selectExercise(index);
+      // fullReset đọc session MỚI từ store (vì selectExercise đã sync)
       fullReset();
     },
     [selectExercise, fullReset]
   );
 
   const handleResetAndStart = useCallback(() => {
-    fullReset();
-    startTimer();
-  }, [fullReset, startTimer]);
+    resetAndStart();
+  }, [resetAndStart]);
 
   // ===== GUARD =====
   if (!selectedExercise) {
@@ -85,11 +97,7 @@ function HomePage() {
       <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
         <Header />
         <div className="flex-grow flex items-center justify-center">
-          <div
-            className="text-slate-400 text-sm"
-            role="status"
-            aria-live="polite"
-          >
+          <div className="text-slate-400 text-sm" role="status" aria-live="polite">
             Đang tải bài tập...
           </div>
         </div>
@@ -114,10 +122,7 @@ function HomePage() {
               className="absolute top-5 left-5 z-10 flex items-center gap-2 bg-slate-800/80 backdrop-blur text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-sm"
               aria-hidden="true"
             >
-              <span
-                className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
-                aria-hidden="true"
-              />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
               Đang chọn
             </div>
 
@@ -138,10 +143,7 @@ function HomePage() {
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
-                  <i
-                    className="fa-solid fa-video-slash text-4xl text-rose-400/50 mb-2"
-                    aria-hidden="true"
-                  />
+                  <i className="fa-solid fa-video-slash text-4xl text-rose-400/50 mb-2" aria-hidden="true" />
                   <p className="text-sm">Chưa có video hướng dẫn</p>
                 </div>
               )}
@@ -155,22 +157,23 @@ function HomePage() {
                 {selectedExercise.name}
               </h2>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/50 border border-slate-700">
-                <i
-                  className="fa-solid fa-crosshairs text-emerald-400 text-xs"
-                  aria-hidden="true"
-                />
-                <p className="text-xs md:text-sm font-medium">
-                  {selectedExercise.target}
-                </p>
+                <i className="fa-solid fa-crosshairs text-emerald-400 text-xs" aria-hidden="true" />
+                <p className="text-xs md:text-sm font-medium">{selectedExercise.target}</p>
               </div>
             </div>
           </div>
 
           {/* TIMER */}
           <TimerControl
+            phase={phase}
+            currentSet={currentSet}
+            totalSets={totalSets}
             timeLeft={timeLeft}
+            workDuration={workDuration}
+            restDuration={restDuration}
+            mode={selectedExercise.mode}
+            reps={selectedExercise.reps}
             isRunning={isRunning}
-            total={selectedExercise.duration}
             isCompleted={isCompleted}
             onStart={startTimer}
             onPause={pauseTimer}
