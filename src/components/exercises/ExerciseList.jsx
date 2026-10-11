@@ -27,6 +27,9 @@ export default function ExerciseList({
     return acc;
   }, [exercises]);
 
+  // Memo hóa danh sách week keys — tránh tạo array mới mỗi render
+  const weekKeys = useMemo(() => Object.keys(grouped), [grouped]);
+
   // Tra index theo id — O(1)
   const indexById = useMemo(() => {
     const map = new Map();
@@ -63,7 +66,7 @@ export default function ExerciseList({
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2 max-h-[600px] scrollbar-thin scrollbar-thumb-slate-700">
-        {Object.keys(grouped).map((weekKey) => {
+        {weekKeys.map((weekKey) => {
           const weekNum = parseInt(weekKey.split('-')[1], 10);
           const weekLabel = weekLabels[weekNum] || `Tuần ${weekNum}`;
           const isCompleted = completedSet.has(weekNum);
@@ -105,7 +108,9 @@ export default function ExerciseList({
                     type="button"
                     onClick={(e) => handleToggleCheck(e, weekNum)}
                     aria-label={
-                      isCompleted ? 'Bỏ đánh dấu tuần đã xong' : 'Đánh dấu tuần đã xong'
+                      isCompleted
+                        ? 'Bỏ đánh dấu tuần đã xong'
+                        : 'Đánh dấu tuần đã xong'
                     }
                     className={`w-6 h-6 rounded-full flex items-center justify-center transition ${
                       isCompleted
@@ -113,11 +118,7 @@ export default function ExerciseList({
                         : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-slate-300'
                     }`}
                   >
-                    <i
-                      className={`fa-solid ${
-                        isCompleted ? 'fa-check' : 'fa-check'
-                      } text-[10px]`}
-                    ></i>
+                    <i className="fa-solid fa-check text-[10px]"></i>
                   </button>
 
                   <i
@@ -128,7 +129,7 @@ export default function ExerciseList({
                 </div>
               </div>
 
-              {/* Danh sách bài — không có checkbox */}
+              {/* Danh sách bài */}
               {expandedWeeks[weekKey] && (
                 <div className="divide-y divide-slate-700/30">
                   {grouped[weekKey].map((ex) => (

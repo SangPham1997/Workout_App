@@ -2,9 +2,10 @@ import { memo, useCallback } from 'react';
 
 /*
   ExerciseItem — hiển thị 1 bài tập trong danh sách
-  - Hiển thị số reps nếu có (VD: "8 reps", "2 hiệp")
-  - Hiển thị thời gian nếu không có reps (VD: "45s")
-  - Nếu có cả 2 (VD: "8 reps × 30s"), hiển thị gọn
+  
+  Meta format theo schema mới:
+  - mode='reps' → "2×12"     (2 hiệp × 12 lần)
+  - mode='time' → "2×30s"    (2 hiệp × 30 giây)
 */
 const ExerciseItem = memo(function ExerciseItem({
   exercise,
@@ -18,27 +19,18 @@ const ExerciseItem = memo(function ExerciseItem({
     onSelect(idx);
   }, [onSelect, idx]);
 
-  // Format hiển thị reps/thời gian
-  const buildMetaLabel = () => {
-    const parts = [];
+  // Build meta label từ schema mới
+  const getMetaLabel = (exercise) => {
+  const sets = exercise.sets ?? 1;
 
-    // Ưu tiên reps nếu có
-    if (exercise.reps != null && exercise.reps > 0) {
-      parts.push(`${exercise.reps} reps`);
+    if (exercise.mode === 'reps' && exercise.reps != null) {
+      return `${sets} hiệp · ${exercise.reps} lần`;
     }
 
-    // Thời gian (chỉ hiện khi có reps hoặc measurement = time)
-    if (exercise.measurement === 'time' && exercise.duration) {
-      parts.push(`${exercise.duration}s`);
-    } else if (exercise.duration && parts.length === 0) {
-      // Không có reps → chỉ hiện duration
-      parts.push(`${exercise.duration}s`);
-    }
-
-    return parts.join(' × ');
+    return `${sets} hiệp · ${exercise.duration}s`;
   };
 
-  const metaLabel = buildMetaLabel();
+  const metaLabel = getMetaLabel(exercise);
 
   return (
     <button
@@ -84,16 +76,14 @@ const ExerciseItem = memo(function ExerciseItem({
         )}
       </div>
 
-      {/* Meta: reps + duration */}
-      {metaLabel && (
-        <span
-          className={`text-xs font-mono whitespace-nowrap flex-shrink-0 ${
-            isActive ? 'text-emerald-400' : 'text-slate-500'
-          }`}
-        >
-          {metaLabel}
-        </span>
-      )}
+      {/* Meta: sets × reps/duration */}
+      <span
+        className={`text-xs font-mono whitespace-nowrap flex-shrink-0 ${
+          isActive ? 'text-emerald-400' : 'text-slate-500'
+        }`}
+      >
+        {metaLabel}
+      </span>
     </button>
   );
 });
