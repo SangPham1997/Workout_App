@@ -51,6 +51,8 @@ function HomePage() {
     pauseTimer,
     fullReset,
     resetAndStart,
+    toggleSound,
+    soundEnabled,
   } = useTimerStore(
     useShallow((state) => ({
       phase: state.phase,
@@ -65,6 +67,8 @@ function HomePage() {
       pauseTimer: state.pauseTimer,
       fullReset: state.fullReset,
       resetAndStart: state.resetAndStart,
+      toggleSound: state.toggleSound,
+      soundEnabled: state.soundEnabled,
     }))
   );
 
@@ -178,6 +182,8 @@ function HomePage() {
             onStart={startTimer}
             onPause={pauseTimer}
             onReset={fullReset}
+            onToggleSound={toggleSound}
+            soundEnabled={soundEnabled}
             onResetAndStart={handleResetAndStart}
           />
 

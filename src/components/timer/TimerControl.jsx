@@ -45,6 +45,8 @@ function TimerControlInner({
   onStart,
   onPause,
   onReset,
+  onToggleSound,
+  soundEnabled,
   onResetAndStart,
 }) {
   // Phase hiện tại dùng duration nào
@@ -192,10 +194,36 @@ function TimerControlInner({
           >
             <i className="fa-solid fa-rotate-right" aria-hidden="true" />
           </button>
+          <button
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600" 
+            onClick={onToggleSound} aria-label="Toggle sound">
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-export default memo(TimerControlInner);
+const arePropsEqual = (prev, next) => {
+  const prevMins = String(Math.floor(prev.timeLeft / 60)).padStart(2, '0');
+  const prevSecs = String(prev.timeLeft % 60).padStart(2, '0');
+  const nextMins = String(Math.floor(next.timeLeft / 60)).padStart(2, '0');
+  const nextSecs = String(next.timeLeft % 60).padStart(2, '0');
+
+  return (
+    prevMins === nextMins &&
+    prevSecs === nextSecs &&
+    prev.isRunning === next.isRunning &&
+    prev.isCompleted === next.isCompleted &&
+    prev.total === next.total &&
+    prev.soundEnabled === next.soundEnabled &&        // ← THÊM
+    prev.onToggleSound === next.onToggleSound &&      // ← THÊM
+    prev.onStart === next.onStart &&
+    prev.onPause === next.onPause &&
+    prev.onReset === next.onReset &&
+    prev.onResetAndStart === next.onResetAndStart
+  );
+};
+
+export default memo(TimerControlInner, arePropsEqual);

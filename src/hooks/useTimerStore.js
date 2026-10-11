@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { useExerciseStore } from '../stores/useExerciseStore';
 import { useKarateStore } from '../stores/useKarateStore';
+import {
+  beepSetComplete,
+  beepRestComplete,
+  beepAllComplete,
+} from '../utils/sound';
 
-/**
- * Resolve buổi tập HIIT hoặc Karate đang chọn theo route hiện tại.
- * Dùng chung cho timer để đồng hồ luôn phản ánh đúng buổi tập trên màn hình.
- */
 const getActiveSession = () => {
   const isKarate =
     typeof window !== 'undefined' &&
@@ -17,11 +18,6 @@ const getActiveSession = () => {
   return useExerciseStore.getState().getSelectedExercise();
 };
 
-/**
- * Chuẩn hóa config từ session.
- * Karate sessions có thể không có `sets` / `rest` → fallback 1 hiệp, không nghỉ.
- * HIIT exercises có schema mới → dùng trực tiếp.
- */
 const getSessionConfig = (session) => {
   if (!session) {
     return { workDuration: 30, restDuration: 0, totalSets: 1 };
@@ -33,7 +29,6 @@ const getSessionConfig = (session) => {
   };
 };
 
-// Interval ID để ngoài state — tránh re-render không cần thiết
 let intervalId = null;
 
 const clearTimer = () => {
@@ -43,28 +38,24 @@ const clearTimer = () => {
   }
 };
 
-/**
- * State machine:
- *   idle → work(set 1) → rest → work(set 2) → … → work(set N) → completed
- *
- * - Nếu restDuration = 0 → bỏ qua phase rest.
- * - Nếu totalSets = 1 → chạy 1 hiệp duy nhất (giống store cũ).
- */
 export const useTimerStore = create((set, get) => ({
-  // ===== CONFIG (được set khi bắt đầu / reset) =====
-  workDuration: 30,   // giây/hiệp
-  restDuration: 0,    // giây nghỉ giữa hiệp
-  totalSets: 1,       // số hiệp
+  // ===== CONFIG =====
+  workDuration: 30,
+  restDuration: 0,
+  totalSets: 1,
 
   // ===== RUNTIME =====
-  phase: 'idle',      // 'idle' | 'work' | 'rest' | 'completed'
-  currentSet: 1,      // 1..totalSets
-  timeLeft: 30,       // giây còn lại của phase hiện tại
+  phase: 'idle',
+  currentSet: 1,
+  timeLeft: 30,
   isRunning: false,
   isCompleted: false,
 
-  // ===== ACTIONS =====
+  // ===== SOUND =====
+  soundEnabled: true,
+  toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
 
+  // ===== ACTIONS =====
   startTimer: () => {
     const { isRunning, phase } = get();
     if (isRunning || phase === 'completed') return;
@@ -75,7 +66,6 @@ export const useTimerStore = create((set, get) => ({
     const config = getSessionConfig(session);
 
     if (phase === 'idle') {
-      // Bắt đầu từ đầu
       set({
         workDuration: config.workDuration,
         restDuration: config.restDuration,
@@ -87,7 +77,6 @@ export const useTimerStore = create((set, get) => ({
         isCompleted: false,
       });
     } else {
-      // Resume từ pause (work hoặc rest)
       set({ isRunning: true });
     }
 
@@ -100,10 +89,6 @@ export const useTimerStore = create((set, get) => ({
     set({ isRunning: false });
   },
 
-  /**
-   * Tick mỗi giây — xử lý transition giữa các phase.
-   * Không dùng ở ngoài, chỉ gọi từ interval trong startTimer.
-   */
   tick: () => {
     const {
       timeLeft,
@@ -112,6 +97,7 @@ export const useTimerStore = create((set, get) => ({
       totalSets,
       workDuration,
       restDuration,
+      soundEnabled,       // ✅ FIX: thêm vào destructure
     } = get();
 
     if (phase === 'idle' || phase === 'completed') {
@@ -119,20 +105,19 @@ export const useTimerStore = create((set, get) => ({
       return;
     }
 
-    // Còn thời gian → giảm 1 giây
     if (timeLeft > 1) {
       set({ timeLeft: timeLeft - 1 });
       return;
     }
 
-    // timeLeft === 1 → chuyển phase
     if (phase === 'work') {
       if (currentSet < totalSets) {
+        // ✅ Beep luôn, dù có nghỉ hay không
+        if (soundEnabled) beepSetComplete();
+
         if (restDuration > 0) {
-          // Sang phase nghỉ
           set({ phase: 'rest', timeLeft: restDuration });
         } else {
-          // Không có nghỉ → sang set kế tiếp luôn
           set({
             phase: 'work',
             currentSet: currentSet + 1,
@@ -140,7 +125,7 @@ export const useTimerStore = create((set, get) => ({
           });
         }
       } else {
-        // Hết set cuối → hoàn thành
+        if (soundEnabled) beepAllComplete();
         clearTimer();
         set({
           phase: 'completed',
@@ -150,7 +135,7 @@ export const useTimerStore = create((set, get) => ({
         });
       }
     } else if (phase === 'rest') {
-      // Hết nghỉ → sang set kế tiếp
+      if (soundEnabled) beepRestComplete();
       set({
         phase: 'work',
         currentSet: currentSet + 1,
@@ -159,10 +144,6 @@ export const useTimerStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Reset hoàn toàn về idle, dựa trên session hiện tại.
-   * Gọi khi user chọn bài khác hoặc nhấn nút Reset.
-   */
   fullReset: () => {
     clearTimer();
     const session = getActiveSession();
@@ -179,18 +160,11 @@ export const useTimerStore = create((set, get) => ({
     });
   },
 
-  /**
-   * Reset rồi start ngay — dùng cho nút "Bắt đầu lại" khi đã hoàn thành.
-   */
   resetAndStart: () => {
     get().fullReset();
     get().startTimer();
   },
 
-  /**
-   * Compat shim — giữ signature cũ nếu còn chỗ gọi `resetTimer(duration)`.
-   * @deprecated Dùng `fullReset()` thay thế.
-   */
   resetTimer: (duration) => {
     clearTimer();
     const d = duration || get().workDuration;
