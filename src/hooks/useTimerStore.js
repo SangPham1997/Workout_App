@@ -35,12 +35,113 @@ const getSessionConfig = (session) => {
 
 // Interval ID để ngoài state — tránh re-render không cần thiết
 let intervalId = null;
+// Use requestAnimationFrame for smoother timer updates and better performance
+let animationFrameId = null;
+let lastTickTime = 0;
+let accumulatedTime = 0;
 
 const clearTimer = () => {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }
+  lastTickTime = 0;
+  accumulatedTime = 0;
+};
+
+/**
+ * High-performance tick using requestAnimationFrame
+ * Accumulates time and only updates state when a full second has passed
+ */
+const tick = (timestamp) => {
+  const { phase, timeLeft, isRunning, isCompleted } = useTimerStore.getState();
+  
+  if (phase === 'idle' || phase === 'completed' || !isRunning) {
+    clearTimer();
+    return;
+  }
+
+  // Initialize on first frame
+  if (lastTickTime === 0) {
+    lastTickTime = timestamp;
+    animationFrameId = requestAnimationFrame(tick);
+    return;
+  }
+
+  // Calculate elapsed time since last frame
+  const deltaTime = timestamp - lastTickTime;
+  lastTickTime = timestamp;
+  accumulatedTime += deltaTime;
+
+  // Only update state when 1 second (1000ms) has accumulated
+  if (accumulatedTime >= 1000) {
+    const secondsToDecrement = Math.floor(accumulatedTime / 1000);
+    accumulatedTime = accumulatedTime % 1000;
+    
+    const { 
+      phase, 
+      currentSet, 
+      totalSets, 
+      workDuration, 
+      restDuration 
+    } = useTimerStore.getState();
+
+    let newTimeLeft = timeLeft - secondsToDecrement;
+    
+    if (newTimeLeft <= 0) {
+      // Phase transition logic
+      if (phase === 'work') {
+        if (currentSet < totalSets) {
+          if (restDuration > 0) {
+            // Transition to rest phase
+            useTimerStore.setState({ 
+              phase: 'rest', 
+              timeLeft: restDuration 
+            });
+          } else {
+            // No rest, go to next set immediately
+            useTimerStore.setState({ 
+              phase: 'work', 
+              currentSet: currentSet + 1, 
+              timeLeft: workDuration 
+            });
+          }
+        } else {
+          // All sets completed
+          clearTimer();
+          useTimerStore.setState({ 
+            phase: 'completed', 
+            timeLeft: 0, 
+            isRunning: false, 
+            isCompleted: true 
+          });
+          return;
+        }
+      } else if (phase === 'rest') {
+        // Rest phase completed, go to next work set
+        useTimerStore.setState({ 
+          phase: 'work', 
+          currentSet: currentSet + 1, 
+          timeLeft: workDuration 
+        });
+      }
+    } else {
+      // Just decrement time
+      useTimerStore.setState({ timeLeft: newTimeLeft });
+    }
+  }
+
+  // Continue animation loop
+  animationFrameId = requestAnimationFrame(tick);
+};
+
+/**
+ * Start the high-performance timer loop
+ */
+const startTimerLoop = () => {
+  lastTickTime = 0;
+  accumulatedTime = 0;
+  animationFrameId = requestAnimationFrame(tick);
 };
 
 /**
@@ -92,7 +193,7 @@ export const useTimerStore = create((set, get) => ({
     }
 
     clearTimer();
-    intervalId = setInterval(() => get().tick(), 1000);
+    startTimerLoop();
   },
 
   pauseTimer: () => {

@@ -1,4 +1,6 @@
 import { memo } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClock } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * MiniTimer — đồng hồ đếm ngược nhỏ hiển thị trên Header.
@@ -15,11 +17,11 @@ export default memo(function MiniTimer({ timeLeft, total, isRunning }) {
       className="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/70 border border-slate-700/60 overflow-hidden"
       title="Thời gian còn lại của buổi tập"
     >
-      <i
-        className={`fa-solid ${
-          isRunning ? 'fa-clock text-emerald-400 animate-pulse' : 'fa-clock text-slate-400'
-        } text-xs`}
-      ></i>
+      <FontAwesomeIcon
+        icon={faClock}
+        size="xs"
+        className={isRunning ? 'text-emerald-400 animate-pulse' : 'text-slate-400'}
+      />
       <span
         className={`font-mono font-bold tabular-nums text-md tracking-tight ${
           isRunning ? 'text-white' : 'text-slate-300'

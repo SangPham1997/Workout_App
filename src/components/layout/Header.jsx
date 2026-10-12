@@ -7,6 +7,13 @@ import {
   useKarateSessions,
 } from '../../stores/selectors';
 import MiniTimer from '../timer/MiniTimer';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faPerson,
+  faPersonBiking,
+  faHandFist,
+  faClock,
+} from '@fortawesome/free-solid-svg-icons';
 
 export default memo(function Header() {
   // Đọc trực tiếp từ timer store — luôn phản ánh đúng buổi tập đang chọn (HIIT/Karate)
@@ -27,7 +34,7 @@ export default memo(function Header() {
         {/* Logo + tên app */}
         <NavLink to="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:bg-emerald-500/30 transition">
-            <i className="fa-solid fa-person"></i>
+            <FontAwesomeIcon icon={faPerson} size="lg" />
           </div>
           <div className="hidden sm:block">
             <h1 className="text-base md:text-lg font-bold text-white tracking-tight leading-tight">
@@ -55,7 +62,7 @@ export default memo(function Header() {
               }`
             }
           >
-            <i className="fa-solid fa-person-biking text-xs"></i>
+            <FontAwesomeIcon icon={faPersonBiking} size="xs" />
             <span className="hidden xs:inline">Exercises</span>
           </NavLink>
 
@@ -69,7 +76,7 @@ export default memo(function Header() {
               }`
             }
           >
-            <i className="fa-solid fa-hand-fist text-xs"></i>
+            <FontAwesomeIcon icon={faHandFist} size="xs" />
             <span className="hidden xs:inline">Karate</span>
           </NavLink>
         </nav>

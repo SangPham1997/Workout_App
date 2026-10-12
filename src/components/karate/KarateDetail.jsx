@@ -26,6 +26,92 @@ const getFirstVideoExercise = (session) => {
   return session.exercises.find((e) => e.videoUrl) || null;
 };
 
+// Memoized ExerciseItem component to prevent re-renders
+const ExerciseListItem = memo(function ExerciseListItem({
+  ex,
+  index,
+  activeIndex,
+  onSelect,
+  getExerciseIcon,
+}) {
+  const isActive = index === activeIndex;
+  const hasVideo = Boolean(ex?.videoUrl);
+  const iconName = getExerciseIcon(ex.name);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(index)}
+      disabled={!hasVideo}
+      className={`w-full text-left flex items-start gap-3 p-3.5 rounded-xl border transition-all group/ex ${
+        isActive
+          ? 'bg-rose-900/25 border-rose-500/60 shadow-[0_0_15px_rgba(244,63,94,0.15)] cursor-pointer'
+          : hasVideo
+          ? 'bg-slate-900/50 border-slate-700/40 hover:border-rose-500/40 hover:bg-slate-900/80 cursor-pointer'
+          : 'bg-slate-900/30 border-slate-700/30 cursor-not-allowed opacity-70'
+      }`}
+      aria-current={isActive}
+      aria-label={ex.name}
+    >
+      <div
+        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 transition ${
+          isActive
+            ? 'bg-rose-500 text-white'
+            : hasVideo
+            ? 'bg-rose-500/15 text-rose-400 group-hover/ex:bg-rose-500/30'
+            : 'bg-slate-700/50 text-slate-500'
+        }`}
+      >
+        <i className={`fa-solid ${iconName}`}></i>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <span
+            className={`text-sm font-semibold leading-snug transition ${
+              isActive ? 'text-rose-300' : 'text-white'
+            }`}
+          >
+            {ex.name}
+          </span>
+          <span
+            className={`text-xs font-mono whitespace-nowrap px-2 py-0.5 rounded-md transition ${
+              isActive ? 'bg-rose-500 text-white' : 'text-rose-400 bg-rose-500/10'
+            }`}
+          >
+            {ex.work}
+          </span>
+        </div>
+
+        {ex.note && (
+          <p className="text-xs text-slate-400 leading-relaxed">{ex.note}</p>
+        )}
+
+        <div className="mt-1.5 flex items-center gap-3 text-[11px]">
+          {hasVideo ? (
+            isActive ? (
+              <span className="inline-flex items-center gap-1.5 text-rose-300 font-bold">
+                <i className="fa-solid fa-circle-play animate-pulse"></i>
+                Đang xem
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-slate-400 group-hover/ex:text-rose-400 transition font-medium">
+                <i className="fa-brands fa-youtube"></i>
+                Click để xem video
+              </span>
+            )
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-slate-600">
+              <i className="fa-solid fa-ban"></i>
+              Chưa có video
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+});
+
 function KarateDetail({
   session,
   isCompleted,
@@ -186,82 +272,16 @@ function KarateDetail({
         </div>
 
         <div className="flex flex-col gap-3">
-          {session.exercises.map((ex, i) => {
-            const hasVideo = Boolean(ex.videoUrl);
-            const isActive = videoExercise === ex;
-
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleSelectExercise(i)}
-                disabled={!hasVideo}
-                className={`w-full text-left flex items-start gap-3 p-3.5 rounded-xl border transition-all group/ex ${
-                  isActive
-                    ? 'bg-rose-900/25 border-rose-500/60 shadow-[0_0_15px_rgba(244,63,94,0.15)] cursor-pointer'
-                    : hasVideo
-                    ? 'bg-slate-900/50 border-slate-700/40 hover:border-rose-500/40 hover:bg-slate-900/80 cursor-pointer'
-                    : 'bg-slate-900/30 border-slate-700/30 cursor-not-allowed opacity-70'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 transition ${
-                    isActive
-                      ? 'bg-rose-500 text-white'
-                      : hasVideo
-                      ? 'bg-rose-500/15 text-rose-400 group-hover/ex:bg-rose-500/30'
-                      : 'bg-slate-700/50 text-slate-500'
-                  }`}
-                >
-                  <i className={`fa-solid ${getExerciseIcon(ex.name)}`}></i>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3 mb-1">
-                    <span
-                      className={`text-sm font-semibold leading-snug transition ${
-                        isActive ? 'text-rose-300' : 'text-white'
-                      }`}
-                    >
-                      {ex.name}
-                    </span>
-                    <span
-                      className={`text-xs font-mono whitespace-nowrap px-2 py-0.5 rounded-md transition ${
-                        isActive ? 'bg-rose-500 text-white' : 'text-rose-400 bg-rose-500/10'
-                      }`}
-                    >
-                      {ex.work}
-                    </span>
-                  </div>
-
-                  {ex.note && (
-                    <p className="text-xs text-slate-400 leading-relaxed">{ex.note}</p>
-                  )}
-
-                  <div className="mt-1.5 flex items-center gap-3 text-[11px]">
-                    {hasVideo ? (
-                      isActive ? (
-                        <span className="inline-flex items-center gap-1.5 text-rose-300 font-bold">
-                          <i className="fa-solid fa-circle-play animate-pulse"></i>
-                          Đang xem
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-slate-400 group-hover/ex:text-rose-400 transition font-medium">
-                          <i className="fa-brands fa-youtube"></i>
-                          Click để xem video
-                        </span>
-                      )
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-slate-600">
-                        <i className="fa-solid fa-ban"></i>
-                        Chưa có video
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          {session.exercises.map((ex, i) => (
+            <ExerciseListItem
+              key={i}
+              ex={ex}
+              index={i}
+              activeIndex={videoExercise === ex ? i : -1}
+              onSelect={handleSelectExercise}
+              getExerciseIcon={getExerciseIcon}
+            />
+          ))}
         </div>
 
         {session.circuit && (

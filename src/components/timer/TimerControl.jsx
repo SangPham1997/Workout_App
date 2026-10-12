@@ -1,30 +1,40 @@
 import { memo } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faHourglassStart,
+  faFire,
+  faMugHot,
+  faCircleCheck,
+  faPause,
+  faRotateRight,
+  faPlay,
+} from '@fortawesome/free-solid-svg-icons';
 
 const PHASE_STYLES = {
   idle: {
     label: 'Sẵn sàng',
-    icon: 'fa-hourglass-start',
+    icon: faHourglassStart,
     badgeClass: 'bg-slate-700/50 text-slate-300 border-slate-600/50',
     barClass: 'bg-slate-500',
     timeClass: 'text-white',
   },
   work: {
     label: 'Đang tập',
-    icon: 'fa-fire',
+    icon: faFire,
     badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
     barClass: 'bg-emerald-500',
     timeClass: 'text-white',
   },
   rest: {
     label: 'Nghỉ',
-    icon: 'fa-mug-hot',
+    icon: faMugHot,
     badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
     barClass: 'bg-amber-500',
     timeClass: 'text-amber-300',
   },
   completed: {
     label: 'Hoàn thành',
-    icon: 'fa-circle-check',
+    icon: faCircleCheck,
     badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
     barClass: 'bg-emerald-400',
     timeClass: 'text-emerald-400',
@@ -46,6 +56,8 @@ function TimerControlInner({
   onPause,
   onReset,
   onResetAndStart,
+  soundEnabled,
+  onToggleSound,
 }) {
   // Phase hiện tại dùng duration nào
   const phaseDuration = phase === 'rest' ? restDuration : workDuration;
@@ -61,22 +73,22 @@ function TimerControlInner({
   let buttonLabel, buttonIcon, buttonClass, onClick;
   if (isRunning) {
     buttonLabel = 'Tạm dừng';
-    buttonIcon = 'fa-pause';
+    buttonIcon = faPause;
     buttonClass = 'bg-amber-500 hover:bg-amber-400 text-slate-900';
     onClick = onPause;
   } else if (isCompleted) {
     buttonLabel = 'Bắt đầu lại';
-    buttonIcon = 'fa-rotate-right';
+    buttonIcon = faRotateRight;
     buttonClass = 'bg-blue-500 hover:bg-blue-400 text-white';
     onClick = onResetAndStart;
   } else if (phase !== 'idle' && timeLeft > 0 && timeLeft < phaseDuration) {
     buttonLabel = 'Tiếp tục';
-    buttonIcon = 'fa-play';
+    buttonIcon = faPlay;
     buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
     onClick = onStart;
   } else {
     buttonLabel = 'Bắt đầu';
-    buttonIcon = 'fa-play';
+    buttonIcon = faPlay;
     buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
     onClick = onStart;
   }
@@ -190,7 +202,12 @@ function TimerControlInner({
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
             aria-label="Đặt lại bộ đếm"
           >
-            <i className="fa-solid fa-rotate-right" aria-hidden="true" />
+            <FontAwesomeIcon icon={faRotateRight} aria-hidden="true" />
+          </button>
+          <button
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600" 
+            onClick={onToggleSound} aria-label="Toggle sound">
+            {soundEnabled ? '🔊' : '🔇'}
           </button>
         </div>
       </div>
@@ -198,4 +215,25 @@ function TimerControlInner({
   );
 }
 
-export default memo(TimerControlInner);
+const arePropsEqual = (prev, next) => {
+  const prevMins = String(Math.floor(prev.timeLeft / 60)).padStart(2, '0');
+  const prevSecs = String(prev.timeLeft % 60).padStart(2, '0');
+  const nextMins = String(Math.floor(next.timeLeft / 60)).padStart(2, '0');
+  const nextSecs = String(next.timeLeft % 60).padStart(2, '0');
+
+  return (
+    prevMins === nextMins &&
+    prevSecs === nextSecs &&
+    prev.isRunning === next.isRunning &&
+    prev.isCompleted === next.isCompleted &&
+    prev.totalSets === next.totalSets &&
+    prev.soundEnabled === next.soundEnabled &&
+    prev.onToggleSound === next.onToggleSound &&
+    prev.onStart === next.onStart &&
+    prev.onPause === next.onPause &&
+    prev.onReset === next.onReset &&
+    prev.onResetAndStart === next.onResetAndStart
+  );
+};
+
+export default memo(TimerControlInner, arePropsEqual);
