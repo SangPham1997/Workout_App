@@ -55,8 +55,6 @@ function TimerControlInner({
   onStart,
   onPause,
   onReset,
-  onToggleSound,
-  soundEnabled,
   onResetAndStart,
   soundEnabled,
   onToggleSound,
@@ -98,11 +96,10 @@ function TimerControlInner({
   // ===== SET INDICATOR =====
   const setDots = Array.from({ length: totalSets }, (_, i) => i + 1);
 
-  // ===== REPS HINT (chỉ khi mode='reps' và đang work) =====
+  // ===== REPS HINT =====
   const showRepsHint =
     mode === 'reps' && reps != null && (phase === 'work' || phase === 'idle');
 
-  // Set label hiển thị: "Hiệp 1/2" hoặc "Nghỉ" hoặc "Hoàn thành"
   const setLabel = (() => {
     if (phase === 'idle') return 'Sẵn sàng bắt đầu';
     if (phase === 'completed') return `Đã xong ${totalSets} hiệp`;
@@ -125,7 +122,8 @@ function TimerControlInner({
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${meta.badgeClass}`}
             >
-              <i className={`fa-solid ${meta.icon} text-[10px]`} aria-hidden="true" />
+              {/* FIX: dùng FontAwesomeIcon với object icon */}
+              <FontAwesomeIcon icon={meta.icon} className="text-[10px]" aria-hidden="true" />
               {meta.label}
             </span>
             <span className="text-xs text-slate-400 font-medium">
@@ -153,8 +151,7 @@ function TimerControlInner({
                 aria-label={`Tiến độ hiệp: ${currentSet}/${totalSets}`}
               >
                 {setDots.map((s) => {
-                  const isDone =
-                    phase === 'completed' || s < currentSet;
+                  const isDone = phase === 'completed' || s < currentSet;
                   const isActive = !isDone && s === currentSet;
                   return (
                     <span
@@ -196,9 +193,11 @@ function TimerControlInner({
             onClick={onClick}
             className={`flex-1 md:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] ${buttonClass}`}
           >
-            <i className={`fa-solid ${buttonIcon} text-sm`} aria-hidden="true" />
+            {/* FIX: dùng FontAwesomeIcon với object icon */}
+            <FontAwesomeIcon icon={buttonIcon} className="text-sm" aria-hidden="true" />
             <span>{buttonLabel}</span>
           </button>
+
           <button
             onClick={onReset}
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
@@ -206,14 +205,14 @@ function TimerControlInner({
           >
             <FontAwesomeIcon icon={faRotateRight} aria-hidden="true" />
           </button>
+
+          {/* FIX: chỉ còn 1 nút sound */}
           <button
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600" 
-            onClick={onToggleSound} aria-label="Toggle sound">
-            {soundEnabled ? '🔊' : '🔇'}
-          </button>
-          <button
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600" 
-            onClick={onToggleSound} aria-label="Toggle sound">
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
+            onClick={onToggleSound}
+            aria-label={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+            aria-pressed={soundEnabled}
+          >
             {soundEnabled ? '🔊' : '🔇'}
           </button>
         </div>
@@ -229,17 +228,26 @@ const arePropsEqual = (prev, next) => {
   const nextSecs = String(next.timeLeft % 60).padStart(2, '0');
 
   return (
+    // ===== FIX: bổ sung các field bị thiếu =====
+    prev.phase === next.phase &&
+    prev.currentSet === next.currentSet &&
+    prev.mode === next.mode &&
+    prev.reps === next.reps &&
+    prev.workDuration === next.workDuration &&
+    prev.restDuration === next.restDuration &&
+    // ===== các field cũ =====
     prevMins === nextMins &&
     prevSecs === nextSecs &&
     prev.isRunning === next.isRunning &&
     prev.isCompleted === next.isCompleted &&
-    prev.total === next.total &&
-    prev.soundEnabled === next.soundEnabled &&        // ← THÊM
-    prev.onToggleSound === next.onToggleSound &&      // ← THÊM
+    prev.totalSets === next.totalSets &&
+    prev.soundEnabled === next.soundEnabled &&
+    // ===== callbacks =====
     prev.onStart === next.onStart &&
     prev.onPause === next.onPause &&
     prev.onReset === next.onReset &&
-    prev.onResetAndStart === next.onResetAndStart
+    prev.onResetAndStart === next.onResetAndStart &&
+    prev.onToggleSound === next.onToggleSound
   );
 };
 
