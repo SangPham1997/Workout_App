@@ -1,11 +1,11 @@
 [build]
-  command = "npm ci && npm run build"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
-  # Vite 8 requires Node.js >= 20.19
+  # Vite 8 requires Node.js >= 20.19 (its rolldown native binary needs glibc >= 2.28,
+  # which rules out Netlify's legacy Ubuntu 16.04 image)
   NODE_VERSION = "22"
-  NPM_FLAGS = "--legacy-peer-deps"
 
 # SPA fallback: route all requests to index.html so BrowserRouter deep links work
 [[redirects]]
