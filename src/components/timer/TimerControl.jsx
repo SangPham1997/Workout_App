@@ -55,6 +55,8 @@ function TimerControlInner({
   onStart,
   onPause,
   onReset,
+  onToggleSound,
+  soundEnabled,
   onResetAndStart,
   soundEnabled,
   onToggleSound,
@@ -209,6 +211,11 @@ function TimerControlInner({
             onClick={onToggleSound} aria-label="Toggle sound">
             {soundEnabled ? '🔊' : '🔇'}
           </button>
+          <button
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600" 
+            onClick={onToggleSound} aria-label="Toggle sound">
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
         </div>
       </div>
     </div>
@@ -226,9 +233,9 @@ const arePropsEqual = (prev, next) => {
     prevSecs === nextSecs &&
     prev.isRunning === next.isRunning &&
     prev.isCompleted === next.isCompleted &&
-    prev.totalSets === next.totalSets &&
-    prev.soundEnabled === next.soundEnabled &&
-    prev.onToggleSound === next.onToggleSound &&
+    prev.total === next.total &&
+    prev.soundEnabled === next.soundEnabled &&        // ← THÊM
+    prev.onToggleSound === next.onToggleSound &&      // ← THÊM
     prev.onStart === next.onStart &&
     prev.onPause === next.onPause &&
     prev.onReset === next.onReset &&

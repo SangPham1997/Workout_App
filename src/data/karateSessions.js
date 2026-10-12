@@ -104,7 +104,7 @@ export const karateSessions = [
         work: '15 phút',
         note:
           'Chú ý kỹ thuật xoay hông khi đấm nghịch tay và sự ổn định khi chuyển đổi giữa các tấn pháp. Giữ sự tập trung cao độ tại điểm kết thúc của mỗi kỹ thuật.',
-        videoUrl: 'https://www.youtube.com/watch?v=I3PpjiCL1vE',
+        videoUrl: 'https://www.youtube.com/watch?v=q1Rg8rUpjjw',
       },
     ],
   },
