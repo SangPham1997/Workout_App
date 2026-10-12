@@ -44,7 +44,6 @@ import {
   faPenToSquare,
   faCirclePlay,
   faBan,
-  faBan as faBanIcon,
   faUser,
   faHeartPulse,
   faBolt,

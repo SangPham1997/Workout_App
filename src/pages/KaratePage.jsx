@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useKarateStore } from '../stores/useKarateStore';
 import { useTimerStore } from '../hooks/useTimerStore';
@@ -51,19 +51,9 @@ export default function KaratePage() {
     }))
   );
 
-  // Tuần đang chọn (mặc định theo buổi hiện tại)
-  const [currentWeek, setCurrentWeek] = useState(selectedSessionFromStore?.week || 1);
-
-  // Đồng bộ currentWeek khi selectedSession thay đổi (ví dụ từ localStorage)
-  useEffect(() => {
-    if (selectedSessionFromStore?.week && selectedSessionFromStore.week !== currentWeek) {
-      setCurrentWeek(selectedSessionFromStore.week);
-    }
-  }, [selectedSessionFromStore?.id]);
-
-  if (!selectedSessionFromStore) {
-    return <div className="text-white p-4">Đang tải...</div>;
-  }
+  // The selected session determines the active week, including persisted selection.
+  const currentWeek = selectedSessionFromStore?.week || 1;
+  const selectedSessionId = selectedSessionFromStore?.id;
 
   // Memoize derived values to avoid recalculation on every render
   const totalWeeks = useMemo(
@@ -77,8 +67,8 @@ export default function KaratePage() {
   );
 
   const currentSessionNote = useMemo(
-    () => notes[selectedSessionFromStore.id] || '',
-    [notes, selectedSessionFromStore.id]
+    () => (selectedSessionId ? notes[selectedSessionId] || '' : ''),
+    [notes, selectedSessionId]
   );
 
   // Stable callbacks using useCallback to prevent child re-renders
@@ -92,7 +82,6 @@ export default function KaratePage() {
 
   const handleSelectWeek = useCallback(
     (week) => {
-      setCurrentWeek(week);
       const firstOfWeek = sessions.find((s) => s.week === week);
       if (firstOfWeek) {
         const idx = sessions.indexOf(firstOfWeek);
@@ -109,15 +98,19 @@ export default function KaratePage() {
   }, [fullReset, startTimer]);
 
   const handleToggleComplete = useCallback(() => {
-    toggleComplete(selectedSessionFromStore.id);
-  }, [toggleComplete, selectedSessionFromStore.id]);
+    if (selectedSessionFromStore) toggleComplete(selectedSessionFromStore.id);
+  }, [toggleComplete, selectedSessionFromStore]);
 
   const handleNoteChange = useCallback(
     (text) => {
-      setNote(selectedSessionFromStore.id, text);
+      if (selectedSessionFromStore) setNote(selectedSessionFromStore.id, text);
     },
-    [setNote, selectedSessionFromStore.id]
+    [setNote, selectedSessionFromStore]
   );
+
+  if (!selectedSessionFromStore) {
+    return <div className="text-white p-4">Đang tải...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
@@ -144,6 +137,7 @@ export default function KaratePage() {
 
           {/* Chi tiết buổi tập */}
           <KarateDetail
+            key={selectedSessionFromStore.id}
             session={selectedSessionFromStore}
             isCompleted={isCurrentSessionCompleted}
             onToggleComplete={handleToggleComplete}

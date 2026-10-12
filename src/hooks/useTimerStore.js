@@ -29,7 +29,6 @@ const getSessionConfig = (session) => {
   };
 };
 
-let intervalId = null;
 // Use requestAnimationFrame for smoother timer updates and better performance
 let animationFrameId = null;
 let lastTickTime = 0;
@@ -49,7 +48,7 @@ const clearTimer = () => {
  * Accumulates time and only updates state when a full second has passed
  */
 const tick = (timestamp) => {
-  const { phase, timeLeft, isRunning, isCompleted } = useTimerStore.getState();
+  const { phase, timeLeft, isRunning } = useTimerStore.getState();
   
   if (phase === 'idle' || phase === 'completed' || !isRunning) {
     clearTimer();

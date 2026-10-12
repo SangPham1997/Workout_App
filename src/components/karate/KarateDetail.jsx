@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { getVideoEmbedUrl } from '../shared/getVideoEmbedUrl';
 
 const EXERCISE_ICONS = {
@@ -123,29 +123,9 @@ function KarateDetail({
   const [activeIndex, setActiveIndex] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
   const [noteText, setNoteText] = useState(note || '');
-  const [syncedId, setSyncedId] = useState(session?.id);
-
-  // Đồng bộ khi đổi buổi — reset activeIndex + note + video state
-  useEffect(() => {
-    if (session?.id !== syncedId) {
-      setSyncedId(session?.id);
-      setActiveIndex(0);
-      setVideoFailed(false);
-      setNoteText(note || '');
-    }
-  }, [session?.id, syncedId, note]);
-
-  // Đồng bộ note khi note prop thay đổi từ bên ngoài (ví dụ load lần đầu)
-  useEffect(() => {
-    if (note !== undefined && note !== noteText && session?.id === syncedId && !noteText) {
-      setNoteText(note);
-    }
-  }, [note, noteText, session?.id, syncedId]);
-
-  if (!session) return null;
 
   // Video hiện tại: ưu tiên exercise được chọn, fallback exercise đầu tiên có video
-  const currentExercise = session.exercises?.[activeIndex] || null;
+  const currentExercise = session?.exercises?.[activeIndex] || null;
   const fallbackExercise = useMemo(() => getFirstVideoExercise(session), [session]);
   const videoExercise = currentExercise?.videoUrl ? currentExercise : fallbackExercise;
   const currentVideoUrl = getVideoEmbedUrl(videoExercise?.videoUrl, { autoplay: false, mute: true, loop: true, controls: true }) || '';
@@ -155,15 +135,17 @@ function KarateDetail({
   }, [noteText, note, onNoteChange]);
 
   const handleSelectExercise = useCallback((index) => {
-    const ex = session.exercises[index];
+    const ex = session?.exercises?.[index];
     if (!ex?.videoUrl) return;
     setActiveIndex(index);
     setVideoFailed(false);
-  }, [session.exercises]);
+  }, [session?.exercises]);
 
   const handleToggleComplete = useCallback(() => {
     onToggleComplete();
   }, [onToggleComplete]);
+
+  if (!session) return null;
 
   return (
     <div className="flex flex-col gap-5">

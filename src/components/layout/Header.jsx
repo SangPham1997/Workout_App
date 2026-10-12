@@ -12,7 +12,6 @@ import {
   faPerson,
   faPersonBiking,
   faHandFist,
-  faClock,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default memo(function Header() {
