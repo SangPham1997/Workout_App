@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import KaratePage from './pages/KaratePage';
-import HabitsPage from './pages/HabitsPage';   // ⬅️ THÊM
+import HabitsPage from './pages/HabitsPage';
 
 function App() {
   return (
@@ -9,7 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/karate" element={<KaratePage />} />
-        <Route path="/habits" element={<HabitsPage />} />   ⬅️ THÊM
+        <Route path="/habits" element={<HabitsPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useHabitStore } from '../stores/useHabitStore';
-import { playStreakSound } from '../utils/habitFeedback';
+import { playStreakSound, hapticCheckIn } from '../utils/habitFeedback';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HabitList from '../components/habits/HabitList';
@@ -9,6 +9,8 @@ import AddHabitModal from '../components/habits/AddHabitModal';
 import StreakBadge from '../components/habits/StreakBadge';
 import CalendarHeatmap from '../components/habits/CalendarHeatmap';
 import HabitSelector from '../components/habits/HabitSelector';
+import HabitChainPrompt from '../components/habits/HabitChainPrompt';
+import TwoMinuteTimer from '../components/habits/TwoMinuteTimer';
 
 export default function HabitsPage() {
   const {
@@ -36,6 +38,12 @@ export default function HabitsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedHabitId, setSelectedHabitId] = useState(null);
 
+  // Chain prompt state
+  const [chainPrompt, setChainPrompt] = useState(null);
+
+  // Two-minute timer state
+  const [twoMinuteHabit, setTwoMinuteHabit] = useState(null);
+
   // Reset freeze đầu tháng
   useEffect(() => {
     resetMonthlyFreeze();
@@ -47,13 +55,12 @@ export default function HabitsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [habits, checkIns]);
 
-  // Streak tổng (cao nhất)
+  // Streak tổng
   const totalStreak = useMemo(
     () => todayHabits.reduce((max, h) => Math.max(max, h.streak), 0),
     [todayHabits]
   );
 
-  // Số habit đã check-in hôm nay
   const completedToday = todayHabits.filter((h) => h.isCheckedInToday).length;
   const totalHabits = todayHabits.length;
 
@@ -63,18 +70,91 @@ export default function HabitsPage() {
     return todayHabits.find((h) => h.id === selectedHabitId) || todayHabits[0];
   }, [selectedHabitId, todayHabits]);
 
+  // ===== CHAIN LOGIC =====
+  const findNextInChain = useCallback(
+    (habitId, excludeId = null) => {
+      return (
+        todayHabits.find(
+          (h) =>
+            h.stackAfter === habitId &&
+            !h.isCheckedInToday &&
+            h.id !== excludeId
+        ) || null
+      );
+    },
+    [todayHabits]
+  );
+
   const handleCheckIn = useCallback(
     (habitId) => {
       checkIn(habitId);
-      // Sound cho milestone
+
       const habit = todayHabits.find((h) => h.id === habitId);
       if (habit && (habit.streak + 1) % 7 === 0 && habit.streak > 0) {
         setTimeout(playStreakSound, 300);
       }
+
+      const nextHabit = findNextInChain(habitId, habitId);
+      if (nextHabit && habit) {
+        setTimeout(() => {
+          setChainPrompt({ fromHabit: habit, toHabit: nextHabit });
+        }, 600);
+      }
     },
-    [checkIn, todayHabits]
+    [checkIn, todayHabits, findNextInChain]
   );
 
+  const handleChainConfirm = useCallback(() => {
+    if (!chainPrompt) return;
+    const { toHabit } = chainPrompt;
+
+    checkIn(toHabit.id);
+    hapticCheckIn();
+    setChainPrompt(null);
+
+    const nextNext = findNextInChain(toHabit.id, toHabit.id);
+    if (nextNext) {
+      setTimeout(() => {
+        setChainPrompt({ fromHabit: toHabit, toHabit: nextNext });
+      }, 700);
+    }
+  }, [chainPrompt, checkIn, findNextInChain]);
+
+  const handleChainDismiss = useCallback(() => {
+    setChainPrompt(null);
+  }, []);
+
+  // ===== TWO-MINUTE LOGIC =====
+  const handleTwoMinuteStart = useCallback(
+    (habitId) => {
+      const habit = todayHabits.find((h) => h.id === habitId);
+      if (habit) setTwoMinuteHabit(habit);
+    },
+    [todayHabits]
+  );
+
+  const handleTwoMinuteComplete = useCallback(() => {
+    if (!twoMinuteHabit) return;
+    const habitId = twoMinuteHabit.id;
+    const habitSnapshot = twoMinuteHabit;
+
+    checkIn(habitId);
+    setTwoMinuteHabit(null);
+
+    // Trigger chain nếu có
+    const nextHabit = findNextInChain(habitId, habitId);
+    if (nextHabit) {
+      setTimeout(() => {
+        setChainPrompt({ fromHabit: habitSnapshot, toHabit: nextHabit });
+      }, 700);
+    }
+  }, [twoMinuteHabit, checkIn, findNextInChain]);
+
+  const handleTwoMinuteCancel = useCallback(() => {
+    setTwoMinuteHabit(null);
+  }, []);
+
+  // ===== MODAL =====
   const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
   const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
 
@@ -107,7 +187,6 @@ export default function HabitsPage() {
             <StreakBadge streak={totalStreak} size="lg" />
           </div>
 
-          {/* Progress bar */}
           {totalHabits > 0 && (
             <div className="relative mt-4">
               <div className="flex items-center justify-between mb-2 text-xs">
@@ -151,10 +230,12 @@ export default function HabitsPage() {
 
           <HabitList
             habits={todayHabits}
+            checkInsMap={checkIns}
             onCheckIn={handleCheckIn}
             onUndoCheckIn={undoCheckIn}
             onDelete={deleteHabit}
             onAddClick={handleOpenModal}
+            onTwoMinuteStart={handleTwoMinuteStart}
           />
         </section>
 
@@ -167,12 +248,11 @@ export default function HabitsPage() {
                 12 tuần qua
               </h2>
 
-              {/* Habit selector */}
               {todayHabits.length > 1 && (
-                 <HabitSelector
-                    habits={todayHabits}
-                    selectedId={selectedHabit.id}
-                    onSelect={setSelectedHabitId}
+                <HabitSelector
+                  habits={todayHabits}
+                  selectedId={selectedHabit.id}
+                  onSelect={setSelectedHabitId}
                 />
               )}
             </div>
@@ -188,8 +268,24 @@ export default function HabitsPage() {
 
       <Footer />
 
-      {/* Modal */}
+      {/* Modals */}
       <AddHabitModal isOpen={isModalOpen} onClose={handleCloseModal} />
+
+      <HabitChainPrompt
+        isOpen={!!chainPrompt}
+        fromHabit={chainPrompt?.fromHabit}
+        toHabit={chainPrompt?.toHabit}
+        onConfirm={handleChainConfirm}
+        onDismiss={handleChainDismiss}
+        autoDismissSeconds={10}
+      />
+
+      <TwoMinuteTimer
+        isOpen={!!twoMinuteHabit}
+        habit={twoMinuteHabit}
+        onComplete={handleTwoMinuteComplete}
+        onCancel={handleTwoMinuteCancel}
+      />
     </div>
   );
 }
