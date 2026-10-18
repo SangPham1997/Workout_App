@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   habitTemplates,
   habitIcons,
@@ -10,13 +10,14 @@ export default function AddHabitModal({ isOpen, onClose }) {
   const habits = useHabitStore((s) => s.habits);
   const addHabit = useHabitStore((s) => s.addHabit);
 
-  const [step, setStep] = useState(1); // 1: template/name, 2: icon+color, 3: stack+2min
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('fa-dumbbell');
   const [color, setColor] = useState('#10b981');
   const [stackAfter, setStackAfter] = useState(null);
   const [twoMinuteMode, setTwoMinuteMode] = useState(false);
   const [twoMinuteTask, setTwoMinuteTask] = useState('');
+  const [error, setError] = useState('');
 
   // Reset khi mở
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function AddHabitModal({ isOpen, onClose }) {
       setStackAfter(null);
       setTwoMinuteMode(false);
       setTwoMinuteTask('');
+      setError('');
     }
   }, [isOpen]);
 
@@ -46,19 +48,34 @@ export default function AddHabitModal({ isOpen, onClose }) {
     setColor(template.color);
     setTwoMinuteTask(template.twoMinuteTask || '');
     setStep(2);
+    setError('');
   }, []);
 
+  // Validate: 2-min mode bật nhưng chưa có task
+  const isInvalid = useMemo(() => {
+    return twoMinuteMode && !twoMinuteTask.trim();
+  }, [twoMinuteMode, twoMinuteTask]);
+
   const handleSubmit = useCallback(() => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setError('Vui lòng nhập tên thói quen');
+      return;
+    }
+    if (twoMinuteMode && !twoMinuteTask.trim()) {
+      setError('Vui lòng nhập việc 2 phút (VD: Lấy áo tập ra)');
+      return;
+    }
+
     addHabit({
       name: name.trim(),
       icon,
       color,
       stackAfter,
       twoMinuteMode,
-      twoMinuteTask: twoMinuteMode ? twoMinuteTask : null,
+      twoMinuteTask: twoMinuteMode ? twoMinuteTask.trim() : null,
       frequency: 'daily',
     });
+
     onClose();
   }, [
     name,
@@ -86,9 +103,7 @@ export default function AddHabitModal({ isOpen, onClose }) {
         <div className="flex items-center justify-between p-5 border-b border-slate-700/50 sticky top-0 bg-slate-800 z-10">
           <div>
             <h2 className="text-lg font-bold text-white">Tạo thói quen</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Bước {step} / 3
-            </p>
+            <p className="text-xs text-slate-500 mt-0.5">Bước {step} / 3</p>
           </div>
           <button
             type="button"
@@ -145,16 +160,33 @@ export default function AddHabitModal({ isOpen, onClose }) {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError('');
+                }}
                 placeholder="VD: Uống đủ nước"
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition"
+                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
                 autoFocus
               />
             </div>
 
+            {error && (
+              <p className="text-xs text-rose-400 flex items-center gap-1.5">
+                <i className="fa-solid fa-circle-exclamation"></i>
+                {error}
+              </p>
+            )}
+
             <button
               type="button"
-              onClick={() => setStep(2)}
+              onClick={() => {
+                if (!name.trim()) {
+                  setError('Vui lòng nhập tên thói quen');
+                  return;
+                }
+                setStep(2);
+                setError('');
+              }}
               disabled={!name.trim()}
               className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-900 font-bold transition"
             >
@@ -166,7 +198,6 @@ export default function AddHabitModal({ isOpen, onClose }) {
         {/* Step 2: Icon + Color */}
         {step === 2 && (
           <div className="p-5 space-y-5">
-            {/* Preview */}
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-700/50">
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
@@ -180,7 +211,6 @@ export default function AddHabitModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Icon picker */}
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">
                 Biểu tượng
@@ -203,7 +233,6 @@ export default function AddHabitModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* Color picker */}
             <div>
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">
                 Màu sắc
@@ -245,10 +274,9 @@ export default function AddHabitModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Step 3: Habit Stacking + Two-Minute */}
+        {/* Step 3: Stack + Two-Minute */}
         {step === 3 && (
           <div className="p-5 space-y-5">
-            {/* Habit Stacking */}
             {habits.length > 0 && (
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">
@@ -274,13 +302,15 @@ export default function AddHabitModal({ isOpen, onClose }) {
               </div>
             )}
 
-            {/* Two-Minute Mode */}
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-700/50">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={twoMinuteMode}
-                  onChange={(e) => setTwoMinuteMode(e.target.checked)}
+                  onChange={(e) => {
+                    setTwoMinuteMode(e.target.checked);
+                    setError('');
+                  }}
                   className="mt-1 w-4 h-4 accent-emerald-500"
                 />
                 <div className="flex-1">
@@ -289,7 +319,7 @@ export default function AddHabitModal({ isOpen, onClose }) {
                   </div>
                   <p className="text-xs text-slate-400 leading-relaxed">
                     Khi bận rộn, chỉ cần làm 1 việc nhỏ 2 phút cũng tính là
-                    hoàn thành. Giúp bạn không bỏ lỡ chuỗi!
+                    hoàn thành. Giới hạn 2 lần/tuần.
                   </p>
                 </div>
               </label>
@@ -298,12 +328,22 @@ export default function AddHabitModal({ isOpen, onClose }) {
                 <input
                   type="text"
                   value={twoMinuteTask}
-                  onChange={(e) => setTwoMinuteTask(e.target.value)}
+                  onChange={(e) => {
+                    setTwoMinuteTask(e.target.value);
+                    setError('');
+                  }}
                   placeholder="VD: Lấy áo tập ra"
                   className="w-full mt-3 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
                 />
               )}
             </div>
+
+            {error && (
+              <p className="text-xs text-rose-400 flex items-center gap-1.5">
+                <i className="fa-solid fa-circle-exclamation"></i>
+                {error}
+              </p>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -316,7 +356,8 @@ export default function AddHabitModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold transition shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                disabled={isInvalid}
+                className="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-900 font-bold transition shadow-[0_0_20px_rgba(16,185,129,0.3)]"
               >
                 Tạo thói quen
               </button>

@@ -32,25 +32,6 @@ export default function KaratePage() {
     }))
   );
 
-  // Combined Timer store subscription
-  const {
-    timeLeft,
-    isRunning,
-    isCompleted,
-    startTimer,
-    pauseTimer,
-    fullReset,
-  } = useTimerStore(
-    useShallow((state) => ({
-      timeLeft: state.timeLeft,
-      isRunning: state.isRunning,
-      isCompleted: state.isCompleted,
-      startTimer: state.startTimer,
-      pauseTimer: state.pauseTimer,
-      fullReset: state.fullReset,
-    }))
-  );
-
   // Tuần đang chọn (mặc định theo buổi hiện tại)
   const [currentWeek, setCurrentWeek] = useState(selectedSessionFromStore?.week || 1);
 
@@ -85,9 +66,8 @@ export default function KaratePage() {
   const handleSelect = useCallback(
     (index) => {
       selectSession(index);
-      fullReset();
     },
-    [selectSession, fullReset]
+    [selectSession]
   );
 
   const handleSelectWeek = useCallback(
@@ -97,16 +77,10 @@ export default function KaratePage() {
       if (firstOfWeek) {
         const idx = sessions.indexOf(firstOfWeek);
         selectSession(idx);
-        fullReset();
       }
     },
-    [sessions, selectSession, fullReset]
+    [sessions, selectSession]
   );
-
-  const handleResetAndStart = useCallback(() => {
-    fullReset();
-    startTimer();
-  }, [fullReset, startTimer]);
 
   const handleToggleComplete = useCallback(() => {
     toggleComplete(selectedSessionFromStore.id);
@@ -149,17 +123,6 @@ export default function KaratePage() {
             onToggleComplete={handleToggleComplete}
             note={currentSessionNote}
             onNoteChange={handleNoteChange}
-          />
-
-          <TimerControl
-            timeLeft={timeLeft}
-            isRunning={isRunning}
-            total={selectedSessionFromStore.duration}
-            isCompleted={isCompleted}
-            onStart={startTimer}
-            onPause={pauseTimer}
-            onReset={fullReset}
-            onResetAndStart={handleResetAndStart}
           />
         </section>
 

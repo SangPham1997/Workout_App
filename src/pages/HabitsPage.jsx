@@ -6,11 +6,14 @@ import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HabitList from '../components/habits/HabitList';
 import AddHabitModal from '../components/habits/AddHabitModal';
+import EditHabitModal from '../components/habits/EditHabitModal';
 import StreakBadge from '../components/habits/StreakBadge';
 import CalendarHeatmap from '../components/habits/CalendarHeatmap';
 import HabitSelector from '../components/habits/HabitSelector';
 import HabitChainPrompt from '../components/habits/HabitChainPrompt';
 import TwoMinuteTimer from '../components/habits/TwoMinuteTimer';
+import HabitStats from '../components/habits/HabitStats';
+import BackupMenu from '../components/habits/BackupMenu';
 
 export default function HabitsPage() {
   const {
@@ -20,8 +23,16 @@ export default function HabitsPage() {
     checkIn,
     undoCheckIn,
     deleteHabit,
+    archiveHabit,
+    updateHabit,
+    useFreeze,
     resetMonthlyFreeze,
     getCheckIns,
+    markTwoMinuteCheckIn,
+    canUseTwoMinute,
+    getTwoMinuteRemaining,
+    exportData,
+    importData,
   } = useHabitStore(
     useShallow((state) => ({
       habits: state.habits,
@@ -30,32 +41,31 @@ export default function HabitsPage() {
       checkIn: state.checkIn,
       undoCheckIn: state.undoCheckIn,
       deleteHabit: state.deleteHabit,
+      archiveHabit: state.archiveHabit,
+      updateHabit: state.updateHabit,
+      useFreeze: state.useFreeze,
       resetMonthlyFreeze: state.resetMonthlyFreeze,
       getCheckIns: state.getCheckIns,
+      markTwoMinuteCheckIn: state.markTwoMinuteCheckIn,
+      canUseTwoMinute: state.canUseTwoMinute,
+      getTwoMinuteRemaining: state.getTwoMinuteRemaining,
+      exportData: state.exportData,
+      importData: state.importData,
     }))
   );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingHabit, setEditingHabit] = useState(null);
   const [selectedHabitId, setSelectedHabitId] = useState(null);
-
-  // Chain prompt state
   const [chainPrompt, setChainPrompt] = useState(null);
-
-  // Two-minute timer state
   const [twoMinuteHabit, setTwoMinuteHabit] = useState(null);
 
-  // Reset freeze đầu tháng
   useEffect(() => {
     resetMonthlyFreeze();
   }, [resetMonthlyFreeze]);
 
-  // Today habits với streak đã tính
-  const todayHabits = useMemo(() => {
-    return getTodayHabits();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habits, checkIns]);
+  const todayHabits = useMemo(() => getTodayHabits(), [habits, checkIns]);
 
-  // Streak tổng
   const totalStreak = useMemo(
     () => todayHabits.reduce((max, h) => Math.max(max, h.streak), 0),
     [todayHabits]
@@ -64,99 +74,135 @@ export default function HabitsPage() {
   const completedToday = todayHabits.filter((h) => h.isCheckedInToday).length;
   const totalHabits = todayHabits.length;
 
-  // Habit đang xem trong heatmap
   const selectedHabit = useMemo(() => {
     if (!selectedHabitId) return todayHabits[0] || null;
     return todayHabits.find((h) => h.id === selectedHabitId) || todayHabits[0];
   }, [selectedHabitId, todayHabits]);
 
-  // ===== CHAIN LOGIC =====
+  // ===== CHAIN =====
   const findNextInChain = useCallback(
-    (habitId, excludeId = null) => {
-      return (
-        todayHabits.find(
-          (h) =>
-            h.stackAfter === habitId &&
-            !h.isCheckedInToday &&
-            h.id !== excludeId
-        ) || null
-      );
-    },
+    (habitId, excludeId = null) =>
+      todayHabits.find(
+        (h) =>
+          h.stackAfter === habitId &&
+          !h.isCheckedInToday &&
+          h.id !== excludeId
+      ) || null,
     [todayHabits]
   );
 
+  // ===== HANDLERS (không toast) =====
   const handleCheckIn = useCallback(
     (habitId) => {
       checkIn(habitId);
-
       const habit = todayHabits.find((h) => h.id === habitId);
+
+      // Streak milestone: chỉ phát sound, không toast
       if (habit && (habit.streak + 1) % 7 === 0 && habit.streak > 0) {
-        setTimeout(playStreakSound, 300);
+        setTimeout(() => playStreakSound(), 600);
       }
 
-      const nextHabit = findNextInChain(habitId, habitId);
-      if (nextHabit && habit) {
-        setTimeout(() => {
-          setChainPrompt({ fromHabit: habit, toHabit: nextHabit });
-        }, 600);
+      const next = findNextInChain(habitId, habitId);
+      if (next && habit) {
+        setTimeout(
+          () => setChainPrompt({ fromHabit: habit, toHabit: next }),
+          600
+        );
       }
     },
     [checkIn, todayHabits, findNextInChain]
   );
 
+  const handleUndoCheckIn = useCallback(
+    (habitId) => {
+      undoCheckIn(habitId);
+    },
+    [undoCheckIn]
+  );
+
+  const handleDelete = useCallback(
+    (habitId) => {
+      deleteHabit(habitId);
+    },
+    [deleteHabit]
+  );
+
+  const handleArchive = useCallback(
+    (habitId) => {
+      archiveHabit(habitId);
+    },
+    [archiveHabit]
+  );
+
+  const handleEdit = useCallback((habit) => {
+    setEditingHabit(habit);
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    (patch) => {
+      if (!editingHabit) return;
+      updateHabit(editingHabit.id, patch);
+      setEditingHabit(null);
+    },
+    [editingHabit, updateHabit]
+  );
+
+  const handleUseFreeze = useCallback(
+    (habitId) => {
+      useFreeze(habitId);
+    },
+    [useFreeze]
+  );
+
   const handleChainConfirm = useCallback(() => {
     if (!chainPrompt) return;
-    const { toHabit } = chainPrompt;
-
-    checkIn(toHabit.id);
+    checkIn(chainPrompt.toHabit.id);
     hapticCheckIn();
     setChainPrompt(null);
 
-    const nextNext = findNextInChain(toHabit.id, toHabit.id);
-    if (nextNext) {
-      setTimeout(() => {
-        setChainPrompt({ fromHabit: toHabit, toHabit: nextNext });
-      }, 700);
+    const next = findNextInChain(
+      chainPrompt.toHabit.id,
+      chainPrompt.toHabit.id
+    );
+    if (next) {
+      setTimeout(
+        () =>
+          setChainPrompt({
+            fromHabit: chainPrompt.toHabit,
+            toHabit: next,
+          }),
+        700
+      );
     }
   }, [chainPrompt, checkIn, findNextInChain]);
 
-  const handleChainDismiss = useCallback(() => {
-    setChainPrompt(null);
-  }, []);
-
-  // ===== TWO-MINUTE LOGIC =====
   const handleTwoMinuteStart = useCallback(
     (habitId) => {
+      if (!canUseTwoMinute(habitId)) return;
       const habit = todayHabits.find((h) => h.id === habitId);
       if (habit) setTwoMinuteHabit(habit);
     },
-    [todayHabits]
+    [todayHabits, canUseTwoMinute]
   );
 
   const handleTwoMinuteComplete = useCallback(() => {
     if (!twoMinuteHabit) return;
+    markTwoMinuteCheckIn(twoMinuteHabit.id);
+
     const habitId = twoMinuteHabit.id;
-    const habitSnapshot = twoMinuteHabit;
-
-    checkIn(habitId);
+    const snap = twoMinuteHabit;
     setTwoMinuteHabit(null);
 
-    // Trigger chain nếu có
-    const nextHabit = findNextInChain(habitId, habitId);
-    if (nextHabit) {
-      setTimeout(() => {
-        setChainPrompt({ fromHabit: habitSnapshot, toHabit: nextHabit });
-      }, 700);
+    const next = findNextInChain(habitId, habitId);
+    if (next) {
+      setTimeout(
+        () => setChainPrompt({ fromHabit: snap, toHabit: next }),
+        700
+      );
     }
-  }, [twoMinuteHabit, checkIn, findNextInChain]);
+  }, [twoMinuteHabit, markTwoMinuteCheckIn, findNextInChain]);
 
-  const handleTwoMinuteCancel = useCallback(() => {
-    setTwoMinuteHabit(null);
-  }, []);
-
-  // ===== MODAL =====
-  const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
-  const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+  const handleTwoMinuteCancel = useCallback(() => setTwoMinuteHabit(null), []);
 
   const today = new Date().toLocaleDateString('vi-VN', {
     weekday: 'long',
@@ -169,10 +215,10 @@ export default function HabitsPage() {
       <Header />
 
       <main className="max-w-4xl w-full mx-auto p-4 md:p-6 flex-grow">
-        {/* ===== HEADER ===== */}
+        {/* HEADER */}
         <div className="relative bg-gradient-to-r from-emerald-900/40 to-slate-800/60 backdrop-blur-sm rounded-3xl border border-emerald-500/30 p-5 shadow-2xl overflow-hidden mb-5">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative flex items-center justify-between gap-3 flex-wrap">
+          <div className="relative flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-2xl">
                 <i className="fa-solid fa-check-double"></i>
@@ -184,7 +230,10 @@ export default function HabitsPage() {
                 <p className="text-xs text-slate-400 capitalize">{today}</p>
               </div>
             </div>
-            <StreakBadge streak={totalStreak} size="lg" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <BackupMenu onExport={exportData} onImport={importData} />
+              <StreakBadge streak={totalStreak} size="lg" />
+            </div>
           </div>
 
           {totalHabits > 0 && (
@@ -211,7 +260,10 @@ export default function HabitsPage() {
           )}
         </div>
 
-        {/* ===== TODAY HABITS ===== */}
+        {/* STATS */}
+        <HabitStats habits={todayHabits} />
+
+        {/* HABITS */}
         <section className="mb-5">
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -220,7 +272,7 @@ export default function HabitsPage() {
             </h2>
             <button
               type="button"
-              onClick={handleOpenModal}
+              onClick={() => setIsModalOpen(true)}
               className="px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-bold transition flex items-center gap-1.5 active:scale-95"
             >
               <i className="fa-solid fa-plus text-[10px]"></i>
@@ -232,14 +284,18 @@ export default function HabitsPage() {
             habits={todayHabits}
             checkInsMap={checkIns}
             onCheckIn={handleCheckIn}
-            onUndoCheckIn={undoCheckIn}
-            onDelete={deleteHabit}
-            onAddClick={handleOpenModal}
+            onUndoCheckIn={handleUndoCheckIn}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            onArchive={handleArchive}
+            onUseFreeze={handleUseFreeze}
+            onAddClick={() => setIsModalOpen(true)}
             onTwoMinuteStart={handleTwoMinuteStart}
+            getTwoMinuteRemaining={getTwoMinuteRemaining}
           />
         </section>
 
-        {/* ===== HEATMAP ===== */}
+        {/* HEATMAP */}
         {todayHabits.length > 0 && selectedHabit && (
           <section className="mb-5">
             <div className="flex items-center justify-between mb-3 px-1 flex-wrap gap-2">
@@ -247,7 +303,6 @@ export default function HabitsPage() {
                 <i className="fa-solid fa-chart-simple text-emerald-400"></i>
                 12 tuần qua
               </h2>
-
               {todayHabits.length > 1 && (
                 <HabitSelector
                   habits={todayHabits}
@@ -256,7 +311,6 @@ export default function HabitsPage() {
                 />
               )}
             </div>
-
             <CalendarHeatmap
               checkIns={getCheckIns(selectedHabit.id)}
               color={selectedHabit.color}
@@ -268,18 +322,24 @@ export default function HabitsPage() {
 
       <Footer />
 
-      {/* Modals */}
-      <AddHabitModal isOpen={isModalOpen} onClose={handleCloseModal} />
-
+      <AddHabitModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+      <EditHabitModal
+        isOpen={!!editingHabit}
+        habit={editingHabit}
+        allHabits={habits}
+        onSave={handleSaveEdit}
+        onClose={() => setEditingHabit(null)}
+      />
       <HabitChainPrompt
         isOpen={!!chainPrompt}
         fromHabit={chainPrompt?.fromHabit}
         toHabit={chainPrompt?.toHabit}
         onConfirm={handleChainConfirm}
-        onDismiss={handleChainDismiss}
-        autoDismissSeconds={10}
+        onDismiss={() => setChainPrompt(null)}
       />
-
       <TwoMinuteTimer
         isOpen={!!twoMinuteHabit}
         habit={twoMinuteHabit}

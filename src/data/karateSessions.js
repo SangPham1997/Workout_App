@@ -191,6 +191,60 @@ export const karateSessions = [
       },
     ],
   },
+    // ============ TUẦN 5: KATA NÂNG CAO (HEIAN SERIES) ============
+  {
+    id: 'kt-08',
+    name: 'Heian Nidan (Bình an Nhị đoạn)',
+    subName: 'Kata thứ hai trong chuỗi Heian, giới thiệu kỹ thuật đá',
+    target: 'Thăng bằng động, kỹ thuật đá trước (Mae Geri), xoay người 180 độ, sự nhanh nhẹn',
+    duration: 900,
+    durationDisplay: '15 phút (Lặp lại)',
+    category: 'Nhập môn',
+    week: 5,
+    level: 'Beginner',
+    type: 'karate',
+    icon: 'fa-person-running',
+    equipment: 'Không',
+    source: 'Shotokan Karate Tutorial / SKIF',
+    guide:
+      'Heian Nidan yêu cầu sự kiểm soát cơ thể tốt hơn Shodan. Chú ý đặc biệt vào việc giữ thăng bằng khi thực hiện cú đá Mae Geri và khi quay người. Đừng vội vàng, hãy đảm bảo mỗi cú đá đều có lực và thu chân về nhanh chóng.',
+    exercises: [
+      {
+        name: 'Heian Nidan Kata',
+        work: '15 phút',
+        note:
+          'Tập trung vào sự dứt khoát của kỹ thuật Empi Uke (gạt bằng khuỷu tay) và sự ổn định khi tiếp đất sau cú đá. Hít thở sâu ở những khoảng nghỉ ngắn.',
+        videoUrl: 'https://www.youtube.com/watch?v=rgs1ysn0R-0', // Link ví dụ, bạn có thể thay bằng link ưa thích
+      },
+    ],
+  },
+
+  {
+    id: 'kt-09',
+    name: 'Heian Sandan (Bình an Tam đoạn)',
+    subName: 'Kata thứ ba, tập trung vào kỹ thuật Shuto (chém tay)',
+    target: 'Sự linh hoạt của hông, kỹ thuật Shuto Uke (gạt bằng cạnh tay), tấn chéo (Kosa Dachi)',
+    duration: 900,
+    durationDisplay: '15 phút (Lặp lại)',
+    category: 'Nhập môn',
+    week: 5,
+    level: 'Beginner',
+    type: 'karate',
+    icon: 'fa-hand',
+    equipment: 'Không',
+    source: 'Shotokan Karate Tutorial / SKIF',
+    guide:
+      'Bài kata này dài hơn và phức tạp hơn với nhiều chuyển động tay liên tục. Điểm nhấn là kỹ thuật Shuto Uke và sự chuyển đổi mượt mà giữa các tấn pháp. Hãy thả lỏng vai nhưng giữ chặt cổ tay khi thực hiện kỹ thuật chém.',
+    exercises: [
+      {
+        name: 'Heian Sandan Kata',
+        work: '15 phút',
+        note:
+          'Chú ý đến góc độ của bàn tay khi thực hiện Shuto Uke. Đảm bảo khuỷu tay không bị mở quá rộng. Giữ mắt nhìn thẳng (Enzan no Metsuke) trong suốt bài tập.',
+        videoUrl: 'https://www.youtube.com/watch?v=1MrRmimBJoA', // Link ví dụ
+      },
+    ],
+  },
 ];
 
 export const karateCategories = [

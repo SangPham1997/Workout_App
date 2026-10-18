@@ -8,14 +8,15 @@ const HabitList = memo(function HabitList({
   onCheckIn,
   onUndoCheckIn,
   onDelete,
+  onEdit,
+  onArchive,
+  onUseFreeze,
   onAddClick,
   onTwoMinuteStart,
+  getTwoMinuteRemaining,
 }) {
-  if (!habits?.length) {
-    return <EmptyHabits onAddClick={onAddClick} />;
-  }
+  if (!habits?.length) return <EmptyHabits onAddClick={onAddClick} />;
 
-  // Map id → habit để tra parent nhanh O(1)
   const habitById = useMemo(() => {
     const map = new Map();
     habits.forEach((h) => map.set(h.id, h));
@@ -35,9 +36,15 @@ const HabitList = memo(function HabitList({
             habit={habit}
             parentHabitName={parentHabit?.name}
             checkIns={checkInsMap[habit.id] || []}
+            twoMinuteRemaining={
+              getTwoMinuteRemaining ? getTwoMinuteRemaining(habit.id) : 0
+            }
             onCheckIn={onCheckIn}
             onUndoCheckIn={onUndoCheckIn}
             onDelete={onDelete}
+            onEdit={onEdit}
+            onArchive={onArchive}
+            onUseFreeze={onUseFreeze}
             onTwoMinuteStart={onTwoMinuteStart}
           />
         );

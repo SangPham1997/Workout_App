@@ -1,13 +1,10 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  useTimeLeft,
-  useIsRunning,
   useKarateIndex,
   useKarateSessions,
 } from '../../stores/selectors';
 import { useHabitStore } from '../../stores/useHabitStore';
-import MiniTimer from '../timer/MiniTimer';
 
 /* ============ NAV ITEMS ============ */
 const NAV_ITEMS = [
@@ -48,8 +45,6 @@ const COLOR_CLASSES = {
 };
 
 export default memo(function Header() {
-  const timeLeft = useTimeLeft();
-  const isRunning = useIsRunning();
   const { pathname } = useLocation();
   const karateSessions = useKarateSessions();
   const karateIndex = useKarateIndex();
@@ -107,7 +102,7 @@ export default memo(function Header() {
         {/* ============ LOGO ============ */}
         <NavLink
           to="/"
-          className="flex items-center gap-2 md:gap-3 group flex-shrink-0"
+          className="flex items-center flex-1 gap-2 md:gap-3 group flex-shrink-0"
           aria-label="Trang chủ"
         >
           <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg md:text-xl group-hover:bg-emerald-500/30 transition">
@@ -122,11 +117,6 @@ export default memo(function Header() {
             </p>
           </div>
         </NavLink>
-
-        {/* ============ MINI TIMER — LUÔN Ở GIỮA ============ */}
-        <div className="flex-1 flex items-center justify-center min-w-0">
-          <MiniTimer timeLeft={timeLeft} total={total} isRunning={isRunning} />
-        </div>
 
         {/* ============ DESKTOP NAV TABS (≥ lg) ============ */}
         <nav

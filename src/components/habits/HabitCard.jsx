@@ -8,34 +8,37 @@ const HabitCard = memo(function HabitCard({
   onCheckIn,
   onUndoCheckIn,
   onDelete,
+  onEdit,
+  onArchive,
+  onUseFreeze,
   onTwoMinuteStart,
+  twoMinuteRemaining = 0,
 }) {
   const [animating, setAnimating] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // Đóng menu khi click ngoài
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const h = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
       }
     };
-    if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (showMenu) document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, [showMenu]);
 
-  // Detect miss hôm qua (streak > 0 nhưng hôm qua không check-in)
+  // Detect miss hôm qua
   const missedYesterday = useMemo(() => {
     if (habit.isCheckedInToday) return false;
     const yesterday = new Date(Date.now() - 86400000)
       .toISOString()
       .slice(0, 10);
-    const hasYesterday = checkIns.includes(yesterday);
-    return !hasYesterday && habit.streak > 0;
+    return !checkIns.includes(yesterday) && habit.streak === 0 && checkIns.length > 0;
   }, [habit.isCheckedInToday, habit.streak, checkIns]);
+
+  // Có freeze để cứu streak không?
+  const canFreeze = missedYesterday && habit.freezeAvailable > 0;
 
   const handleToggle = useCallback(() => {
     if (habit.isCheckedInToday) {
@@ -49,12 +52,25 @@ const HabitCard = memo(function HabitCard({
     }
   }, [habit, onCheckIn, onUndoCheckIn]);
 
-  const handleDelete = useCallback(() => {
-    if (window.confirm(`Xóa thói quen "${habit.name}"?`)) {
-      onDelete(habit.id);
-    }
-    setShowMenu(false);
-  }, [habit, onDelete]);
+  const handleMenuAction = useCallback(
+    (action) => {
+      setShowMenu(false);
+      if (action === 'delete') {
+        if (window.confirm(`Xóa thói quen "${habit.name}"?`)) onDelete(habit.id);
+      } else if (action === 'edit') {
+        onEdit(habit);
+      } else if (action === 'archive') {
+        if (window.confirm(`Lưu trữ "${habit.name}"? Bạn có thể khôi phục sau.`)) {
+          onArchive(habit.id);
+        }
+      } else if (action === 'freeze') {
+        if (window.confirm(`Dùng 1 lượt freeze để cứu chuỗi?`)) {
+          onUseFreeze(habit.id);
+        }
+      }
+    },
+    [habit, onDelete, onEdit, onArchive, onUseFreeze]
+  );
 
   return (
     <div
@@ -74,15 +90,31 @@ const HabitCard = memo(function HabitCard({
         <i className="fa-solid fa-ellipsis-vertical text-sm"></i>
       </button>
 
-      {/* Dropdown menu */}
       {showMenu && (
         <div
           ref={menuRef}
-          className="absolute top-12 right-3 z-20 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden min-w-[140px]"
+          className="absolute top-12 right-3 z-20 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden min-w-[160px]"
         >
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => handleMenuAction('edit')}
+            className="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700/60 transition flex items-center gap-2"
+          >
+            <i className="fa-solid fa-pen text-xs"></i>
+            Sửa thói quen
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMenuAction('archive')}
+            className="w-full text-left px-4 py-2.5 text-sm text-amber-400 hover:bg-slate-700/60 transition flex items-center gap-2"
+          >
+            <i className="fa-solid fa-box-archive text-xs"></i>
+            Lưu trữ
+          </button>
+          <div className="h-px bg-slate-700" />
+          <button
+            type="button"
+            onClick={() => handleMenuAction('delete')}
             className="w-full text-left px-4 py-2.5 text-sm text-rose-400 hover:bg-slate-700/60 transition flex items-center gap-2"
           >
             <i className="fa-solid fa-trash text-xs"></i>
@@ -91,7 +123,7 @@ const HabitCard = memo(function HabitCard({
         </div>
       )}
 
-      {/* Icon + Name + Chain + Streak */}
+      {/* Header */}
       <div className="flex items-center gap-3 mb-4 pr-8">
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
@@ -113,16 +145,24 @@ const HabitCard = memo(function HabitCard({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+          <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5 flex-wrap">
             <span className="flex items-center gap-1">
               <i className="fa-solid fa-fire text-amber-400"></i>
-              Chuỗi:{' '}
               <span className="font-bold text-white">{habit.streak}</span>
             </span>
+            {habit.longestStreak > 0 && (
+              <span
+                className="flex items-center gap-1 text-yellow-400/80"
+                title="Kỷ lục"
+              >
+                <i className="fa-solid fa-trophy text-[10px]"></i>
+                {habit.longestStreak}
+              </span>
+            )}
             {habit.freezeAvailable > 0 && (
               <span
                 className="flex items-center gap-1 text-cyan-400"
-                title="Có thể dùng để bỏ lỡ 1 ngày"
+                title="Lượt freeze"
               >
                 <i className="fa-solid fa-snowflake text-[10px]"></i>
                 {habit.freezeAvailable}
@@ -141,45 +181,55 @@ const HabitCard = memo(function HabitCard({
             ? 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'
             : 'bg-slate-700 text-white hover:bg-slate-600'
         }`}
-        aria-pressed={habit.isCheckedInToday}
       >
-        <i
-          className={`fa-solid ${
-            habit.isCheckedInToday ? 'fa-check-circle' : 'fa-circle'
-          }`}
-        ></i>
+        <i className={`fa-solid ${habit.isCheckedInToday ? 'fa-check-circle' : 'fa-circle'}`}></i>
         {habit.isCheckedInToday ? 'Đã hoàn thành' : 'Hoàn thành'}
       </button>
 
-      {/* TWO-MINUTE MODE */}
-      {habit.twoMinuteMode && !habit.isCheckedInToday && (
+      {/* Freeze button (ưu tiên cao khi miss) */}
+      {canFreeze && (
+        <button
+          type="button"
+          onClick={() => handleMenuAction('freeze')}
+          className="w-full mt-2 py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-sm font-bold transition flex items-center justify-center gap-2 active:scale-95"
+        >
+          <i className="fa-solid fa-snowflake text-xs"></i>
+          Dùng freeze cứu chuỗi
+        </button>
+      )}
+
+      {/* Two-minute mode */}
+      {habit.twoMinuteMode && !habit.isCheckedInToday && onTwoMinuteStart && (
         <>
           {missedYesterday ? (
             <button
               type="button"
-              onClick={() => onTwoMinuteStart?.(habit.id)}
-              className="w-full mt-2 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-sm font-bold transition flex items-center justify-center gap-2 active:scale-95"
+              onClick={() => onTwoMinuteStart(habit.id)}
+              disabled={twoMinuteRemaining <= 0}
+              className="w-full mt-2 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed border border-amber-500/40 text-amber-300 text-sm font-bold transition flex items-center justify-center gap-2 active:scale-95"
             >
               <i className="fa-solid fa-clock text-xs"></i>
-              Chỉ 2 phút cứu streak
+              {twoMinuteRemaining > 0
+                ? `Chỉ 2 phút cứu streak (còn ${twoMinuteRemaining})`
+                : 'Hết lượt 2 phút tuần này'}
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => onTwoMinuteStart?.(habit.id)}
-              className="w-full mt-2 py-2 text-[11px] text-slate-500 hover:text-amber-400 transition flex items-center justify-center gap-1 group"
-              title={
-                habit.twoMinuteTask ? `Chỉ cần: ${habit.twoMinuteTask}` : ''
-              }
+              onClick={() => onTwoMinuteStart(habit.id)}
+              disabled={twoMinuteRemaining <= 0}
+              className="w-full mt-2 py-2 text-[11px] text-slate-500 hover:text-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-1"
             >
-              <i className="fa-solid fa-clock text-[9px] group-hover:text-amber-400"></i>
-              Bận quá? Chỉ 2 phút thôi
+              <i className="fa-solid fa-clock text-[9px]"></i>
+              {twoMinuteRemaining > 0
+                ? `Bận quá? Chỉ 2 phút (còn ${twoMinuteRemaining}/tuần)`
+                : 'Hết lượt 2 phút tuần này'}
             </button>
           )}
         </>
       )}
 
-      {/* Animation overlay */}
+      {/* Animation */}
       {animating && (
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-30">
           <div className="text-emerald-400 text-7xl animate-habit-pop">✓</div>
