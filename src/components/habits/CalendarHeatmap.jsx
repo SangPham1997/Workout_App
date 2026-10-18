@@ -1,10 +1,15 @@
-import { useMemo, useState, useRef, useEffect, memo } from 'react';
+import { useMemo, useState, useEffect, memo, useCallback } from 'react';
 
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const MONTH_LABELS = [
   'Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6',
   'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12',
 ];
+
+const DAY_CHECK_INTERVAL = 60 * 1000;
+
+const startOfDayKey = () => new Date().toISOString().slice(0, 10);
+const startOfDayTime = (key) => new Date(`${key}T00:00:00`).getTime();
 
 /* ====== TOOLTIP ====== */
 function HeatmapTooltip({ data, anchorRect }) {
@@ -28,24 +33,8 @@ function HeatmapTooltip({ data, anchorRect }) {
     >
       <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl px-3 py-2 whitespace-nowrap">
         <div className="text-[11px] font-bold text-white">{formatted}</div>
-        <div
-          className={`text-[10px] mt-0.5 ${
-            isFuture
-              ? 'text-slate-500'
-              : isChecked
-              ? 'text-emerald-400 font-bold'
-              : isToday
-              ? 'text-amber-400 font-bold'
-              : 'text-slate-500'
-          }`}
-        >
-          {isFuture
-            ? 'Chưa tới'
-            : isChecked
-            ? '✓ Đã hoàn thành'
-            : isToday
-            ? '⏳ Hôm nay'
-            : '• Chưa hoàn thành'}
+        <div className={`text-[10px] mt-0.5 ${isFuture ? 'text-slate-500' : isChecked ? 'text-emerald-400 font-bold' : isToday ? 'text-amber-400 font-bold' : 'text-slate-500'}`}>
+          {isFuture ? 'Chưa tới' : isChecked ? '✓ Đã hoàn thành' : isToday ? '⏳ Hôm nay' : '• Chưa hoàn thành'}
         </div>
       </div>
       {/* Arrow */}
@@ -67,21 +56,35 @@ function StatPill({ icon, label, value, color = 'slate' }) {
 
   return (
     <div className="flex items-center gap-2">
-      <div
-        className={`w-7 h-7 rounded-lg flex items-center justify-center ${colorMap[color]}`}
-      >
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${colorMap[color]}`}>
         <i className={`fa-solid ${icon} text-[10px]`}></i>
       </div>
       <div>
-        <div className="text-[9px] text-slate-500 uppercase tracking-wider leading-tight">
-          {label}
-        </div>
-        <div className="text-sm font-bold text-white tabular-nums leading-tight">
-          {value}
-        </div>
+        <div className="text-[9px] text-slate-500 uppercase tracking-wider leading-tight">{label}</div>
+        <div className="text-sm font-bold text-white tabular-nums leading-tight">{value}</div>
       </div>
     </div>
   );
+}
+
+/* Lấy class và style cho ô heatmap (tách ra để render sạch, dễ bảo trì) */
+function getCellClass({ isFuture, isChecked, isToday, isHovered, reducedMotion }) {
+  const base = 'w-3.5 h-3.5 rounded-[3px] cursor-pointer relative';
+  const motion = reducedMotion ? '' : 'transition-all duration-150';
+
+  if (isFuture) return `${base} bg-slate-800/40 cursor-default ${motion}`;
+
+  if (isChecked) {
+    return `${base} ${motion} hover:scale-125 hover:ring-2 hover:ring-white/40 hover:z-10 ${isHovered ? 'scale-125 z-10' : ''}`;
+  }
+
+  return `${base} ${motion} bg-slate-700/40 hover:scale-125 hover:bg-slate-600/60 hover:ring-2 hover:ring-white/20 hover:z-10 ${isHovered ? 'scale-125 z-10' : ''} ${isToday ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-800' : ''}`;
+}
+
+function getCellStyle({ isChecked, isHovered, color, reducedMotion }) {
+  if (!isChecked) return undefined;
+  const shadow = reducedMotion ? undefined : (isHovered ? `0 0 12px ${color}80` : undefined);
+  return { backgroundColor: color, boxShadow: shadow };
 }
 
 const CalendarHeatmap = memo(function CalendarHeatmap({
@@ -91,25 +94,28 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
 }) {
   const [tooltip, setTooltip] = useState(null);
   const [hoveredKey, setHoveredKey] = useState(null);
-  const containerRef = useRef(null);
+  const [todayKey, setTodayKey] = useState(startOfDayKey);
+
+  const reducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
   const checkInSet = useMemo(() => new Set(checkIns), [checkIns]);
 
-  // ===== BUILD DAYS GRID =====
-  const days = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
+  // ===== BUILD DAYS GRID (single pass: days + weeks together, O(n)) =====
+  const { days, weeks } = useMemo(() => {
+    const todayTime = startOfDayTime(todayKey);
 
-    const dayOfWeek = today.getDay();
+    const todayDate = new Date(todayTime);
+    const dayOfWeek = todayDate.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const currentMonday = new Date(today);
-    currentMonday.setDate(today.getDate() + diffToMonday);
+    const currentMonday = new Date(todayTime);
+    currentMonday.setDate(todayDate.getDate() + diffToMonday);
 
     const startDate = new Date(currentMonday);
     startDate.setDate(currentMonday.getDate() - (weeksToShow - 1) * 7);
 
-    const result = [];
+    const days = [];
+    const weeks = Array.from({ length: weeksToShow }, () => []);
+
     const totalDays = weeksToShow * 7;
     for (let i = 0; i < totalDays; i++) {
       const d = new Date(startDate);
@@ -118,27 +124,15 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
       const isChecked = checkInSet.has(iso);
       const isFuture = d.getTime() > todayTime;
       const isToday = d.getTime() === todayTime;
+      const week = Math.floor(i / 7);
 
-      result.push({
-        date: iso,
-        dayOfWeek: d.getDay(),
-        week: Math.floor(i / 7),
-        isChecked,
-        isFuture,
-        isToday,
-      });
+      const day = { date: iso, dayOfWeek: d.getDay(), week, isChecked, isFuture, isToday };
+      days.push(day);
+      weeks[week].push(day);
     }
-    return result;
-  }, [checkInSet, weeksToShow]);
 
-  // ===== GROUP BY WEEK =====
-  const weeks = useMemo(() => {
-    const result = [];
-    for (let w = 0; w < weeksToShow; w++) {
-      result.push(days.filter((d) => d.week === w));
-    }
-    return result;
-  }, [days, weeksToShow]);
+    return { days, weeks };
+  }, [todayKey, checkInSet, weeksToShow]);
 
   // ===== MONTH LABELS =====
   const monthLabels = useMemo(() => {
@@ -162,19 +156,18 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
     const checkedDays = pastDays.filter((d) => d.isChecked);
     const totalPast = pastDays.length;
     const totalChecked = checkedDays.length;
-    const completionRate =
-      totalPast > 0 ? Math.round((totalChecked / totalPast) * 100) : 0;
+    const completionRate = totalPast > 0 ? Math.round((totalChecked / totalPast) * 100) : 0;
 
-    // Current streak (tính từ hôm nay ngược lại)
+    // Chuỗi hiện tại (tính từ hôm nay ngược lại)
     let currentStreak = 0;
     const reversed = [...pastDays].reverse();
     for (const d of reversed) {
       if (d.isChecked) currentStreak++;
-      else if (d.isToday) continue; // hôm nay chưa check vẫn cho qua
+      else if (d.isToday) continue;
       else break;
     }
 
-    // Longest streak
+    // Chuỗi dài nhất
     let longestStreak = 0;
     let tempStreak = 0;
     for (const d of pastDays) {
@@ -190,17 +183,17 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
   }, [days]);
 
   // ===== HOVER HANDLERS =====
-  const handleCellHover = (day, e) => {
+  const handleCellHover = useCallback((day, e) => {
     if (day.isFuture) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({ data: day, anchorRect: rect });
     setHoveredKey(day.date);
-  };
+  }, []);
 
-  const handleCellLeave = () => {
+  const handleCellLeave = useCallback(() => {
     setTooltip(null);
     setHoveredKey(null);
-  };
+  }, []);
 
   // Đóng tooltip khi scroll
   useEffect(() => {
@@ -208,6 +201,22 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
     window.addEventListener('scroll', handleScroll, true);
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, []);
+
+  // ===== RESET COMPLETION KHI SANG NGÀY MỚI =====
+  // Nếu app để mở qua nửa đêm, todayKey sẽ lỗi thời → kiểm tra mỗi phút,
+  // khi phát hiện ngày mới thì force re-render (isToday/isChecked tính lại theo ngày mới)
+  // và reset tooltip/highlight nên ô "hôm nay" về trạng thái chưa hoàn thành (trừ khi check-in hôm nay).
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextKey = startOfDayKey();
+      if (nextKey !== todayKey) {
+        setTodayKey(nextKey);
+        setTooltip(null);
+        setHoveredKey(null);
+      }
+    }, DAY_CHECK_INTERVAL);
+    return () => clearInterval(timer);
+  }, [todayKey]);
 
   // ===== EMPTY STATE =====
   if (checkIns.length === 0) {
@@ -229,68 +238,37 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
   }
 
   return (
-    <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-5 overflow-hidden">
+    <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-5 overflow-hidden" role="region" aria-label="Lịch heatmap thói quen">
       {/* ===== STATS HEADER ===== */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-5 pb-5 border-b border-slate-700/40">
-        <StatPill
-          icon="fa-circle-check"
-          label="Đã hoàn thành"
-          value={`${stats.totalChecked}/${stats.totalPast}`}
-          color="emerald"
-        />
-        <StatPill
-          icon="fa-percent"
-          label="Tỉ lệ"
-          value={`${stats.completionRate}%`}
-          color="sky"
-        />
-        <StatPill
-          icon="fa-fire"
-          label="Chuỗi hiện tại"
-          value={`${stats.currentStreak} ngày`}
-          color="amber"
-        />
-        <StatPill
-          icon="fa-trophy"
-          label="Kỷ lục"
-          value={`${stats.longestStreak} ngày`}
-          color="amber"
-        />
+        <StatPill icon="fa-circle-check" label="Đã hoàn thành" value={`${stats.totalChecked}/${stats.totalPast}`} color="emerald" />
+        <StatPill icon="fa-percent" label="Tỉ lệ" value={`${stats.completionRate}%`} color="sky" />
+        <StatPill icon="fa-fire" label="Chuỗi hiện tại" value={`${stats.currentStreak} ngày`} color="amber" />
+        <StatPill icon="fa-trophy" label="Kỷ lục" value={`${stats.longestStreak} ngày`} color="amber" />
       </div>
 
       {/* ===== HEATMAP GRID ===== */}
-      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700" aria-label="Lưới check-in">
         <div className="inline-block min-w-full">
           {/* Month labels */}
-          <div className="flex gap-1 mb-2 pl-8 relative h-4">
+          <div className="flex gap-1 mb-2 pl-8 relative h-4" aria-hidden="true">
             {monthLabels.map((m, i) => (
-              <div
-                key={`${m.weekIndex}-${i}`}
-                className="absolute text-[10px] text-slate-500 uppercase tracking-wider font-bold"
-                style={{ left: `${32 + m.weekIndex * 15}px` }}
-              >
-                {m.label}
-              </div>
+              <div key={`${m.weekIndex}-${i}`} className="absolute text-[10px] text-slate-500 uppercase tracking-wider font-bold" style={{ left: `${32 + m.weekIndex * 15}px` }}>{m.label}</div>
             ))}
           </div>
 
           <div className="flex gap-1">
             {/* Day labels */}
-            <div className="flex flex-col gap-1 mr-1">
+            <div className="flex flex-col gap-1 mr-1" aria-hidden="true">
               {DAY_LABELS.map((label, i) => (
-                <div
-                  key={label}
-                  className="w-6 h-3.5 text-[9px] text-slate-500 flex items-center font-medium"
-                >
-                  {i % 2 === 0 ? label : ''}
-                </div>
+                <div key={label} className="w-6 h-3.5 text-[9px] text-slate-500 flex items-center font-medium">{i % 2 === 0 ? label : ''}</div>
               ))}
             </div>
 
             {/* Grid */}
-            <div className="flex gap-1">
+            <div className="flex gap-1" role="grid" aria-label="Các ngày check-in">
               {weeks.map((week, wi) => (
-                <div key={wi} className="flex flex-col gap-1">
+                <div key={wi} className="flex flex-col gap-1" role="row">
                   {[1, 2, 3, 4, 5, 6, 0].map((dow) => {
                     const day = week.find((d) => d.dayOfWeek === dow);
                     if (!day) {
@@ -303,33 +281,22 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
                     }
 
                     const isHovered = hoveredKey === day.date;
+                    const dateObj = new Date(day.date);
+                    const weekday = DAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
+                    const formatted = `${weekday}, ${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+                    const ariaLabel = `${formatted} - ${day.isChecked ? 'Đã hoàn thành' : day.isToday ? 'Hôm nay - chưa hoàn thành' : 'Chưa hoàn thành'}`;
 
                     return (
                       <div
                         key={dow}
                         onMouseEnter={(e) => handleCellHover(day, e)}
                         onMouseLeave={handleCellLeave}
-                        className={`w-3.5 h-3.5 rounded-[3px] transition-all duration-150 cursor-pointer ${
-                          day.isFuture
-                            ? 'bg-slate-800/40 cursor-default'
-                            : day.isChecked
-                            ? 'hover:scale-125 hover:ring-2 hover:ring-white/40 hover:z-10 relative'
-                            : 'bg-slate-700/40 hover:scale-125 hover:bg-slate-600/60 hover:ring-2 hover:ring-white/20 hover:z-10 relative'
-                        } ${day.isToday ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-800' : ''} ${
-                          isHovered && !day.isFuture
-                            ? 'scale-125 z-10'
-                            : ''
-                        }`}
-                        style={
-                          day.isChecked && !day.isFuture
-                            ? {
-                                backgroundColor: color,
-                                boxShadow: isHovered
-                                  ? `0 0 12px ${color}80`
-                                  : undefined,
-                              }
-                            : undefined
-                        }
+                        role="gridcell"
+                        aria-label={ariaLabel}
+                        aria-checked={day.isChecked ? 'true' : 'false'}
+                        tabIndex={-1}
+                        className={getCellClass({ ...day, isHovered, reducedMotion })}
+                        style={getCellStyle({ isChecked: day.isChecked, isHovered, color, reducedMotion })}
                       />
                     );
                   })}
@@ -342,7 +309,7 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
 
       {/* ===== LEGEND ===== */}
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700/40 flex-wrap gap-2">
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-500" aria-hidden="true">
           <span>Ít</span>
           <div className="w-3.5 h-3.5 rounded-[3px] bg-slate-700/40" />
           <div
@@ -352,7 +319,7 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
           <span>Nhiều</span>
         </div>
 
-        <div className="flex items-center gap-4 text-[10px] text-slate-500">
+        <div className="flex items-center gap-4 text-[10px] text-slate-500" aria-hidden="true">
           <div className="flex items-center gap-1.5">
             <div className="w-3.5 h-3.5 rounded-[3px] ring-2 ring-amber-400 ring-offset-1 ring-offset-slate-800" />
             <span>Hôm nay</span>
@@ -365,9 +332,7 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
       </div>
 
       {/* ===== TOOLTIP ===== */}
-      {tooltip && (
-        <HeatmapTooltip data={tooltip.data} anchorRect={tooltip.anchorRect} />
-      )}
+      {tooltip && <HeatmapTooltip data={tooltip.data} anchorRect={tooltip.anchorRect} />}
     </div>
   );
 });
