@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { getVideoEmbedUrl } from '../shared/getVideoEmbedUrl';
 
 const LEVEL_LABELS = {
@@ -17,6 +17,9 @@ const SpineDetail = memo(function SpineDetail({
   isCompleted,
   onToggleComplete,
 }) {
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
   const embedUrl = useMemo(
     () =>
       exercise.videoUrl
@@ -30,35 +33,90 @@ const SpineDetail = memo(function SpineDetail({
     [exercise.videoUrl]
   );
 
+  const videoId = useMemo(() => {
+    const match = exercise.videoUrl?.match(
+      /(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/
+    );
+    return match?.[1] ?? '';
+  }, [exercise.videoUrl]);
+
+  const posterUrl = videoId
+    ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+    : '';
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Video nếu có; chưa có thì dùng card hướng dẫn gọn */}
-      {embedUrl ? (
-        <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-700/50 bg-black">
+      {/* Video nếu có; lỗi tải thì hiện fallback + link YouTube */}
+      {embedUrl && !videoFailed ? (
+        <div className="relative group aspect-video rounded-2xl overflow-hidden border border-slate-700/50 bg-black">
+          {posterUrl && !videoLoaded && (
+            <>
+              <img
+                src={posterUrl}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover opacity-80"
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-slate-950/25 text-white pointer-events-none">
+                <i className="fa-solid fa-circle-play text-4xl text-white/90" aria-hidden="true" />
+                <span className="text-[11px] font-medium text-white/80">Đang tải video…</span>
+              </div>
+            </>
+          )}
           <iframe
-            className="w-full h-full"
+            className={`relative w-full h-full transition-opacity duration-300 ${
+              videoLoaded ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
             src={embedUrl}
             title={exercise.name}
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
-            loading="lazy"
+            onLoad={() => setVideoLoaded(true)}
+            onError={() => setVideoFailed(true)}
           />
+          <a
+            href={exercise.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-lg transition hover:bg-sky-500"
+          >
+            <i className="fa-brands fa-youtube" aria-hidden="true" />
+            Mở trên YouTube
+          </a>
         </div>
       ) : (
         <div className="flex items-center gap-3 rounded-2xl border border-sky-500/25 bg-sky-950/20 px-4 py-3">
           <div className="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-300 flex items-center justify-center flex-shrink-0">
-            <i className="fa-solid fa-stopwatch" aria-hidden="true" />
+            <i
+              className={`fa-solid ${
+                videoFailed ? 'fa-video-slash' : 'fa-stopwatch'
+              }`}
+              aria-hidden="true"
+            />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-sky-200">
-              Tập theo mô tả + timer
+              {videoFailed ? 'Video không tải được' : 'Tập theo mô tả + timer'}
             </p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Bài này chưa cần video. Đọc hướng dẫn, bấm timer và giữ đúng biên độ.
+              {videoFailed
+                ? 'Mở liên kết YouTube bên dưới hoặc làm theo hướng dẫn trong bài.'
+                : 'Đọc hướng dẫn, bấm timer và giữ đúng biên độ.'}
             </p>
           </div>
+          {exercise.videoUrl && (
+            <a
+              href={exercise.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-full bg-sky-500 px-3 py-1.5 text-[11px] font-bold text-slate-900 hover:bg-sky-400 transition"
+            >
+              <i className="fa-brands fa-youtube" aria-hidden="true" />
+              YouTube
+            </a>
+          )}
         </div>
       )}
 

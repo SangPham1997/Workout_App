@@ -172,6 +172,7 @@ export default function SpineBarPage() {
                 )}
 
                 <SpineDetail
+                  key={selected.id}
                   exercise={selected}
                   isCompleted={completedIds.includes(selected.id)}
                   onToggleComplete={toggleComplete}

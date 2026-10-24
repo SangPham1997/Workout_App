@@ -37,6 +37,7 @@ export const kumiteSessions = [
         name: 'Kamae: đổi trọng tâm trước – sau',
         work: '3 hiệp × 40s',
         note: 'Giữ một tay trước một tay sau; chuyển 60/40 rồi 40/60, không khoá gối.',
+        videoUrl: 'https://www.youtube.com/watch?v=qJED51I7iTc',
       },
       {
         name: 'Maai: tiến – lùi 3 bước',
@@ -88,6 +89,7 @@ export const kumiteSessions = [
         name: 'Mẫu 5 bước: lùi – gạt – đấm',
         work: '4 hiệp × 60s',
         note: 'Mỗi hiệp 5 nhịp: lùi, age-uke, gyaku-zuki, trở về kamae, thở.',
+        videoUrl: 'https://www.youtube.com/watch?v=m3M6tdpoEUw',
       },
       {
         name: 'Đổi vai / đổi hướng',
@@ -139,6 +141,7 @@ export const kumiteSessions = [
         name: 'Phản xạ jodan: age-uke + gyaku-zuki',
         work: '3 hiệp × 60s',
         note: 'Lùi nhẹ, gạt lên, đấm nghịch tay; giữ trục thân người.',
+        videoUrl: 'https://www.youtube.com/watch?v=eyQTvH7XGYs',
       },
       {
         name: 'Phản xạ chudan: soto-uke + gyaku-zuki',

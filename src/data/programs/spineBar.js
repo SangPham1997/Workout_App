@@ -68,7 +68,7 @@ export const spineBarProgram = {
         'chuyển sang bài treo có hỗ trợ.',
       regression: 'Chạm mũi chân xuống ghế để giảm tải, giữ 10–15 giây.',
       progression: 'Tăng 5 giây mỗi tuần, tối đa 30 giây/hiệp.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=dOCQjaasbGs',
     },
     {
       id: 'hang-assisted',
@@ -94,7 +94,7 @@ export const spineBarProgram = {
         'không khoá cứng.',
       regression: 'Tăng lực đỡ bằng chân nếu thấy vai bị kéo quá mức.',
       progression: 'Giảm dần lực đỡ bằng chân, tiến tới treo thả lỏng 10 giây.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=no_ZdiJsLu4',
     },
     {
       id: 'scapular-pull',
@@ -119,7 +119,7 @@ export const spineBarProgram = {
         'Không giật người để kéo vai xuống. Nếu không cảm nhận được bả vai, quay lại bài treo có hỗ trợ.',
       regression: 'Đặt chân lên ghế để giảm trọng lượng, tập 4 lần/hiệp.',
       progression: 'Tăng lên 8 lần/hiệp khi kiểm soát tốt, sau đó thêm 1 giây giữ.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=-ZIpSoTRsuE',
     },
     {
       id: 'breathing-hang',
@@ -143,7 +143,7 @@ export const spineBarProgram = {
       safety: 'Nếu chóng mặt hoặc khó thở, dừng lại và ngồi nghỉ.',
       regression: 'Thực hiện khi ngồi ghế, không cần treo.',
       progression: 'Tăng lên 3 hiệp khi thấy dễ chịu.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=XFbAB7nyVV8',
     },
 
     // ============================================================
@@ -172,7 +172,7 @@ export const spineBarProgram = {
         'Chỉ đi đến biên độ thoải mái. Nếu đau lưng dưới, siết nhẹ bụng và giảm độ ngả.',
       regression: 'Dùng khung cửa hoặc tường thay xà, giảm độ ngả.',
       progression: 'Tăng thời gian giữ lên 30 giây, không tăng độ ngả quá nhanh.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=UzPcawhpeQ8',
     },
     {
       id: 'thoracic-rotation',
@@ -196,7 +196,7 @@ export const spineBarProgram = {
       safety: 'Không xoay quá mức gây đau; giữ bụng nhẹ để bảo vệ lưng dưới.',
       regression: 'Giảm biên độ, chỉ xoay 30–40% so với bình thường.',
       progression: 'Tăng lên 8 lần/bên khi thấy mượt.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=PWmNVcs8rJY',
     },
     {
       id: 'bar-fold',
@@ -220,7 +220,7 @@ export const spineBarProgram = {
       safety: 'Không gập bụng để xuống sâu hơn; giữ cột sống trung tính.',
       regression: 'Giữ tay trên ghế cao thay vì xà thấp.',
       progression: 'Tăng thời gian giữ lên 30 giây hoặc lùi chân xa hơn một chút.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=goN4rWbQUn4',
     },
     {
       id: 'shoulder-opener',
@@ -244,7 +244,7 @@ export const spineBarProgram = {
       safety: 'Không dùng đà; nếu vai kêu hoặc đau, giảm biên độ.',
       regression: 'Nới rộng tay hơn hoặc chỉ đưa lên cao, không ra sau.',
       progression: 'Thu hẹp khoảng tay khi vai mở tốt hơn.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=vP8YmmRMz6I',
     },
     {
       id: 'chair-extension',
@@ -268,7 +268,7 @@ export const spineBarProgram = {
       safety: 'Ghế phải chắc, không có bánh. Nếu đau cổ, không đan tay sau đầu.',
       regression: 'Chỉ ưỡn nhẹ, không ngả người.',
       progression: 'Tăng thời gian giữ, không tăng độ ngả.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=woHZZa12zDw',
     },
 
     // ============================================================
@@ -296,7 +296,7 @@ export const spineBarProgram = {
       safety: 'Không võng lưng dưới; nếu không giữ được thân thẳng, gập gối nhiều hơn.',
       regression: 'Gập gối, chống chân gần người để giảm tải.',
       progression: 'Duỗi chân hoặc hạ xà thấp hơn khi kiểm soát tốt.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=5W8F6MzZ8Rk',
     },
     {
       id: 'knee-raise',
@@ -320,7 +320,7 @@ export const spineBarProgram = {
       safety: 'Nếu vai mỏi, dùng ghế đỡ chân. Không thực hiện khi đang đau lưng dưới cấp.',
       regression: 'Nâng từng gối hoặc dùng ghế đỡ chân.',
       progression: 'Tăng lên 8 lần/hiệp hoặc giữ gối cao 1 giây.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=p9hhX_Sx5v0',
     },
     {
       id: 'tuck-hold',
@@ -344,7 +344,7 @@ export const spineBarProgram = {
       safety: 'Giữ thời gian ngắn, không nín thở. Dừng nếu vai mỏi nhiều.',
       regression: 'Dùng ghế đỡ chân hoặc giảm còn 6–8 giây.',
       progression: 'Tăng lên 15–20 giây khi thân dưới không đung đưa.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=B3gtmd0Upng',
     },
     {
       id: 'dead-bug',
@@ -368,7 +368,7 @@ export const spineBarProgram = {
       safety: 'Nếu lưng dưới cong lên, giảm biên độ hoặc chỉ duỗi chân.',
       regression: 'Chỉ duỗi chân, giữ tay cố định; hoặc giữ chân co nhiều hơn.',
       progression: 'Tăng lên 8 lần/bên hoặc duỗi chân thấp hơn.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=GbSC02oU3To',
     },
     {
       id: 'cat-cow',
@@ -392,7 +392,7 @@ export const spineBarProgram = {
       safety: 'Không ép cổ ngửa quá mức; giữ biên độ thoải mái.',
       regression: 'Thực hiện khi ngồi ghế, chỉ ưỡn/cong nhẹ.',
       progression: 'Tăng lên 10 lần hoặc thêm xoay nhẹ sang hai bên.',
-      videoUrl: '',
+      videoUrl: 'https://www.youtube.com/watch?v=1Y0YjXS9sKI',
     },
   ],
 };

@@ -885,6 +885,7 @@ Sau Phase 1 có thể dùng thử với 5–10 người văn phòng để chỉn
 - [x] Thêm 3 buổi Kumite solo; Karate có 12 buổi, 3 track, path picker, timeline tua video, thư viện 16 kỹ thuật.
 - [x] Header 4 tab, theme sky, route lazy-load.
 - [x] Kiểm tra migration localStorage từ schema cũ.
+- [x] Điền videoUrl cho 14 bài Xà + 3 buổi Kumite; xác minh 46/46 video bằng oEmbed và `playableInEmbed=true`.
 - [x] `npm run lint` và `npm run build` pass (build cần quyền ngoài sandbox vì Vite spawn tiến trình con).
 - [x] Kiểm tra mobile 390px: `scrollWidth == viewport`, không tràn ngang.
 
@@ -909,6 +910,7 @@ Sau Phase 1 có thể dùng thử với 5–10 người văn phòng để chỉn
 
 ### Ghi chú kỹ thuật khi triển khai
 
+- Danh sách video và kết quả kiểm tra: [video-sources.md](video-sources.md).
 - `karateSessions.js` gốc vẫn giữ nguyên 9 buổi; metadata track/tuần/kỹ thuật được gắn ở `data/karate/tracks.js` để không phải sửa nội dung video.
 - `sessions.kumite.js` chứa 3 buổi drill solo, không có video; timeline đóng vai trò checklist.
 - `src/hooks/useTimerStore.js` chỉ còn re-export; code thật nằm ở `src/stores/useTimerStore.js`.
