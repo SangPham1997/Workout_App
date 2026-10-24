@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { habitIcons, habitColors } from '../../data/habitTemplates';
 
+/**
+ * Wrapper: key theo habit.id + chỉ mount khi mở → state khởi tạo đúng habit,
+ * không cần effect đồng bộ state.
+ */
 export default function EditHabitModal({
   isOpen,
   habit,
@@ -8,29 +12,33 @@ export default function EditHabitModal({
   onSave,
   onClose,
 }) {
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState('fa-dumbbell');
-  const [color, setColor] = useState('#10b981');
-  const [stackAfter, setStackAfter] = useState(null);
-  const [twoMinuteMode, setTwoMinuteMode] = useState(false);
-  const [twoMinuteTask, setTwoMinuteTask] = useState('');
+  if (!isOpen || !habit) return null;
+  return (
+    <EditHabitForm
+      key={habit.id}
+      habit={habit}
+      allHabits={allHabits}
+      onSave={onSave}
+      onClose={onClose}
+    />
+  );
+}
+
+function EditHabitForm({ habit, allHabits, onSave, onClose }) {
+  const [name, setName] = useState(habit.name || '');
+  const [icon, setIcon] = useState(habit.icon || 'fa-dumbbell');
+  const [color, setColor] = useState(habit.color || '#10b981');
+  const [stackAfter, setStackAfter] = useState(habit.stackAfter || null);
+  const [twoMinuteMode, setTwoMinuteMode] = useState(habit.twoMinuteMode || false);
+  const [twoMinuteTask, setTwoMinuteTask] = useState(habit.twoMinuteTask || '');
 
   useEffect(() => {
-    if (isOpen && habit) {
-      setName(habit.name || '');
-      setIcon(habit.icon || 'fa-dumbbell');
-      setColor(habit.color || '#10b981');
-      setStackAfter(habit.stackAfter || null);
-      setTwoMinuteMode(habit.twoMinuteMode || false);
-      setTwoMinuteTask(habit.twoMinuteTask || '');
-    }
-  }, [isOpen, habit]);
-
-  useEffect(() => {
-    const h = (e) => e.key === 'Escape' && isOpen && onClose();
-    if (isOpen) window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [isOpen, onClose]);
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
 
   const handleSave = useCallback(() => {
     if (!name.trim()) return;
@@ -45,14 +53,15 @@ export default function EditHabitModal({
     onClose();
   }, [name, icon, color, stackAfter, twoMinuteMode, twoMinuteTask, onSave, onClose]);
 
-  if (!isOpen || !habit) return null;
-
   const otherHabits = allHabits.filter((h) => h.id !== habit.id && !h.archivedAt);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sửa thói quen"
     >
       <div
         className="bg-slate-800 rounded-3xl border border-slate-700/50 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-scale-in"
@@ -61,8 +70,10 @@ export default function EditHabitModal({
         <div className="flex items-center justify-between p-5 border-b border-slate-700/50 sticky top-0 bg-slate-800 z-10">
           <h2 className="text-lg font-bold text-white">Sửa thói quen</h2>
           <button
+            type="button"
             onClick={onClose}
             className="w-9 h-9 rounded-full hover:bg-slate-700 transition flex items-center justify-center text-slate-400 hover:text-white"
+            aria-label="Đóng"
           >
             <i className="fa-solid fa-xmark"></i>
           </button>
@@ -137,6 +148,7 @@ export default function EditHabitModal({
                     color === c ? 'ring-2 ring-white scale-110' : 'hover:scale-110'
                   }`}
                   style={{ backgroundColor: c }}
+                  aria-label={`Màu ${c}`}
                 />
               ))}
             </div>

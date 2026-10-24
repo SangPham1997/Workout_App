@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef, memo } from 'react';
 
 const ICONS = {
   'Nền tảng': 'fa-person',
@@ -19,7 +19,7 @@ const WEEK_LABELS = {
   5: 'Tổng hợp',
 };
 
-export default function KarateSessionList({
+const KarateSessionList = memo(function KarateSessionList({
   sessions,
   currentIndex,
   onSelect,
@@ -42,20 +42,48 @@ export default function KarateSessionList({
     });
   };
 
-  // Lọc buổi tập theo tuần đang chọn
-  const filtered = sessions.filter((s) => s.week === activeWeek);
+  const completedSet = useMemo(() => new Set(completedIds), [completedIds]);
 
-  // Progress tuần hiện tại
-  const weekCompleted = filtered.filter((s) => completedIds.includes(s.id)).length;
-  const weekTotal = filtered.length;
-  const weekPercent = weekTotal > 0 ? (weekCompleted / weekTotal) * 100 : 0;
-
-  // Progress tổng
-  const totalCompleted = sessions.filter((s) => completedIds.includes(s.id)).length;
-  const totalPercent = sessions.length > 0 ? (totalCompleted / sessions.length) * 100 : 0;
+  const indexById = useMemo(
+    () => new Map(sessions.map((s, index) => [s.id, index])),
+    [sessions]
+  );
 
   // Danh sách các tuần có buổi tập
-  const weeks = [...new Set(sessions.map((s) => s.week))].sort((a, b) => a - b);
+  const weeks = useMemo(
+    () => [...new Set(sessions.map((s) => s.week))].sort((a, b) => a - b),
+    [sessions]
+  );
+
+  // Đếm số buổi đã xong theo tuần trong 1 lượt (thay vì filter lặp lại)
+  const weekStats = useMemo(() => {
+    const stats = new Map();
+    for (const session of sessions) {
+      const entry = stats.get(session.week) || { total: 0, done: 0 };
+      entry.total++;
+      if (completedSet.has(session.id)) entry.done++;
+      stats.set(session.week, entry);
+    }
+    return stats;
+  }, [sessions, completedSet]);
+
+  const totalCompleted = useMemo(
+    () => sessions.reduce((sum, s) => sum + (completedSet.has(s.id) ? 1 : 0), 0),
+    [sessions, completedSet]
+  );
+
+  const totalPercent =
+    sessions.length > 0 ? (totalCompleted / sessions.length) * 100 : 0;
+
+  // Lọc buổi tập theo tuần đang chọn
+  const filtered = useMemo(
+    () => sessions.filter((s) => s.week === activeWeek),
+    [sessions, activeWeek]
+  );
+
+  const activeStats = weekStats.get(activeWeek) || { total: 0, done: 0 };
+  const weekPercent =
+    activeStats.total > 0 ? (activeStats.done / activeStats.total) * 100 : 0;
 
   return (
     <div className="flex flex-col gap-4 h-full min-w-0">
@@ -103,10 +131,9 @@ export default function KarateSessionList({
           className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide scroll-smooth px-9 pb-1"
         >
           {weeks.map((w) => {
-            const wSessions = sessions.filter((s) => s.week === w);
-            const wDone = wSessions.filter((s) => completedIds.includes(s.id)).length;
+            const stats = weekStats.get(w) || { total: 0, done: 0 };
             const isActive = w === activeWeek;
-            const isDone = wDone === wSessions.length && wSessions.length > 0;
+            const isDone = stats.total > 0 && stats.done === stats.total;
 
             return (
               <button
@@ -144,7 +171,7 @@ export default function KarateSessionList({
                       isDone ? 'text-emerald-400' : 'text-slate-400'
                     }`}
                   >
-                    {wDone}/{wSessions.length}
+                    {stats.done}/{stats.total}
                   </span>
                 </div>
               </button>
@@ -171,13 +198,13 @@ export default function KarateSessionList({
             Tuần {activeWeek} — {WEEK_LABELS[activeWeek] || ''}
           </h3>
           <span className="text-xs text-slate-500">
-            {weekCompleted}/{weekTotal} buổi
+            {activeStats.done}/{activeStats.total} buổi
           </span>
         </div>
         <div className="w-full h-1 bg-slate-700/50 rounded-full overflow-hidden mx-2">
           <div
             className={`h-full transition-all duration-500 ${
-              weekCompleted === weekTotal && weekTotal > 0
+              activeStats.done === activeStats.total && activeStats.total > 0
                 ? 'bg-emerald-400'
                 : 'bg-rose-500'
             }`}
@@ -189,9 +216,9 @@ export default function KarateSessionList({
       {/* ============ DANH SÁCH BUỔI TẬP ============ */}
       <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2 max-h-[520px] scrollbar-rose scroll-fade scroll-smooth-custom">
         {filtered.map((s, weekIdx) => {
-          const idx = sessions.indexOf(s);
+          const idx = indexById.get(s.id) ?? 0;
           const isActive = currentIndex === idx;
-          const isDone = completedIds.includes(s.id);
+          const isDone = completedSet.has(s.id);
           const icon = ICONS[s.category] || 'fa-hand-fist';
 
           return (
@@ -285,4 +312,6 @@ export default function KarateSessionList({
       </div>
     </div>
   );
-}
+});
+
+export default KarateSessionList;

@@ -91,10 +91,6 @@ function HomePage() {
     [selectExercise, fullReset]
   );
 
-  const handleResetAndStart = useCallback(() => {
-    resetAndStart();
-  }, [resetAndStart]);
-
   // ===== GUARD =====
   if (!selectedExercise) {
     return (
@@ -184,7 +180,7 @@ function HomePage() {
             onReset={fullReset}
             onToggleSound={toggleSound}
             soundEnabled={soundEnabled}
-            onResetAndStart={handleResetAndStart}
+            onResetAndStart={resetAndStart}
           />
 
           {/* GUIDE */}

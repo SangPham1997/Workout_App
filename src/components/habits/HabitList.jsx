@@ -4,51 +4,42 @@ import EmptyHabits from './EmptyHabits';
 
 const HabitList = memo(function HabitList({
   habits,
-  checkInsMap = {},
   onCheckIn,
   onUndoCheckIn,
   onDelete,
   onEdit,
   onArchive,
-  onUseFreeze,
+  onApplyFreeze,
   onAddClick,
   onTwoMinuteStart,
-  getTwoMinuteRemaining,
 }) {
-  if (!habits?.length) return <EmptyHabits onAddClick={onAddClick} />;
-
+  // Hook phải chạy trước mọi early return (rules-of-hooks).
   const habitById = useMemo(() => {
     const map = new Map();
-    habits.forEach((h) => map.set(h.id, h));
+    for (const habit of habits || []) map.set(habit.id, habit);
     return map;
   }, [habits]);
 
+  if (!habits?.length) return <EmptyHabits onAddClick={onAddClick} />;
+
   return (
     <div className="flex flex-col gap-3">
-      {habits.map((habit) => {
-        const parentHabit = habit.stackAfter
-          ? habitById.get(habit.stackAfter)
-          : null;
-
-        return (
-          <HabitCard
-            key={habit.id}
-            habit={habit}
-            parentHabitName={parentHabit?.name}
-            checkIns={checkInsMap[habit.id] || []}
-            twoMinuteRemaining={
-              getTwoMinuteRemaining ? getTwoMinuteRemaining(habit.id) : 0
-            }
-            onCheckIn={onCheckIn}
-            onUndoCheckIn={onUndoCheckIn}
-            onDelete={onDelete}
-            onEdit={onEdit}
-            onArchive={onArchive}
-            onUseFreeze={onUseFreeze}
-            onTwoMinuteStart={onTwoMinuteStart}
-          />
-        );
-      })}
+      {habits.map((habit) => (
+        <HabitCard
+          key={habit.id}
+          habit={habit}
+          parentHabitName={
+            habit.stackAfter ? habitById.get(habit.stackAfter)?.name : undefined
+          }
+          onCheckIn={onCheckIn}
+          onUndoCheckIn={onUndoCheckIn}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onArchive={onArchive}
+          onApplyFreeze={onApplyFreeze}
+          onTwoMinuteStart={onTwoMinuteStart}
+        />
+      ))}
     </div>
   );
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { getVideoEmbedUrl } from '../shared/getVideoEmbedUrl';
 
 const EXERCISE_ICONS = {
@@ -12,6 +12,8 @@ const EXERCISE_ICONS = {
   'Burpees': 'fa-fire',
   'Squat': 'fa-person',
 };
+
+const VIDEO_OPTIONS = { autoplay: false, mute: true, loop: true, controls: true };
 
 const getExerciseIcon = (name) => {
   for (const [key, icon] of Object.entries(EXERCISE_ICONS)) {
@@ -33,36 +35,24 @@ function KarateDetail({
   note,
   onNoteChange,
 }) {
-  // State nội bộ cho buổi đang xem
+  // State nội bộ cho buổi đang xem. Parent render component với
+  // key={session.id} nên các state này tự reset khi đổi buổi.
   const [activeIndex, setActiveIndex] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
   const [noteText, setNoteText] = useState(note || '');
-  const [syncedId, setSyncedId] = useState(session?.id);
 
-  // Đồng bộ khi đổi buổi — reset activeIndex + note + video state
-  useEffect(() => {
-    if (session?.id !== syncedId) {
-      setSyncedId(session?.id);
-      setActiveIndex(0);
-      setVideoFailed(false);
-      setNoteText(note || '');
-    }
-  }, [session?.id, syncedId, note]);
-
-  // Đồng bộ note khi note prop thay đổi từ bên ngoài (ví dụ load lần đầu)
-  useEffect(() => {
-    if (note !== undefined && note !== noteText && session?.id === syncedId && !noteText) {
-      setNoteText(note);
-    }
-  }, [note, noteText, session?.id, syncedId]);
-
-  if (!session) return null;
+  const fallbackExercise = useMemo(() => getFirstVideoExercise(session), [session]);
 
   // Video hiện tại: ưu tiên exercise được chọn, fallback exercise đầu tiên có video
-  const currentExercise = session.exercises?.[activeIndex] || null;
-  const fallbackExercise = useMemo(() => getFirstVideoExercise(session), [session]);
-  const videoExercise = currentExercise?.videoUrl ? currentExercise : fallbackExercise;
-  const currentVideoUrl = getVideoEmbedUrl(videoExercise?.videoUrl, { autoplay: false, mute: true, loop: true, controls: true }) || '';
+  const currentExercise = session?.exercises?.[activeIndex] || null;
+  const videoExercise = currentExercise?.videoUrl
+    ? currentExercise
+    : fallbackExercise;
+
+  const currentVideoUrl = useMemo(
+    () => getVideoEmbedUrl(videoExercise?.videoUrl, VIDEO_OPTIONS) || '',
+    [videoExercise]
+  );
 
   const handleNoteBlur = useCallback(() => {
     if (noteText !== note) onNoteChange(noteText);
@@ -75,9 +65,7 @@ function KarateDetail({
     setVideoFailed(false);
   }, [session.exercises]);
 
-  const handleToggleComplete = useCallback(() => {
-    onToggleComplete();
-  }, [onToggleComplete]);
+  if (!session) return null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -141,7 +129,8 @@ function KarateDetail({
             <p className="text-xs text-slate-500 mt-0.5">{session.subName}</p>
           </div>
           <button
-            onClick={handleToggleComplete}
+            type="button"
+            onClick={onToggleComplete}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
               isCompleted
                 ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'

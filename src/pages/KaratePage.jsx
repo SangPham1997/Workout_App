@@ -1,10 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useKarateStore } from '../stores/useKarateStore';
-import { useTimerStore } from '../hooks/useTimerStore';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import TimerControl from '../components/timer/TimerControl';
 import KarateSessionList from '../components/karate/KarateSessionList';
 import KarateDetail from '../components/karate/KarateDetail';
 
@@ -13,7 +11,7 @@ export default function KaratePage() {
   const {
     sessions,
     selectedIndex,
-    selectedSession: selectedSessionFromStore,
+    selectedSession,
     selectSession,
     completedIds,
     toggleComplete,
@@ -32,19 +30,7 @@ export default function KaratePage() {
     }))
   );
 
-  // Tuần đang chọn (mặc định theo buổi hiện tại)
-  const [currentWeek, setCurrentWeek] = useState(selectedSessionFromStore?.week || 1);
-
-  // Đồng bộ currentWeek khi selectedSession thay đổi (ví dụ từ localStorage)
-  useEffect(() => {
-    if (selectedSessionFromStore?.week && selectedSessionFromStore.week !== currentWeek) {
-      setCurrentWeek(selectedSessionFromStore.week);
-    }
-  }, [selectedSessionFromStore?.id]);
-
-  if (!selectedSessionFromStore) {
-    return <div className="text-white p-4">Đang tải...</div>;
-  }
+  const selectedId = selectedSession?.id;
 
   // Memoize derived values to avoid recalculation on every render
   const totalWeeks = useMemo(
@@ -53,13 +39,13 @@ export default function KaratePage() {
   );
 
   const isCurrentSessionCompleted = useMemo(
-    () => completedIds.includes(selectedSessionFromStore.id),
-    [completedIds, selectedSessionFromStore.id]
+    () => (selectedId ? completedIds.includes(selectedId) : false),
+    [completedIds, selectedId]
   );
 
   const currentSessionNote = useMemo(
-    () => notes[selectedSessionFromStore.id] || '',
-    [notes, selectedSessionFromStore.id]
+    () => (selectedId ? notes[selectedId] || '' : ''),
+    [notes, selectedId]
   );
 
   // Stable callbacks using useCallback to prevent child re-renders
@@ -72,26 +58,28 @@ export default function KaratePage() {
 
   const handleSelectWeek = useCallback(
     (week) => {
-      setCurrentWeek(week);
-      const firstOfWeek = sessions.find((s) => s.week === week);
-      if (firstOfWeek) {
-        const idx = sessions.indexOf(firstOfWeek);
-        selectSession(idx);
-      }
+      // Chọn buổi đầu tiên của tuần → tuần đang xem suy ra từ session,
+      // không cần state + effect đồng bộ riêng.
+      const index = sessions.findIndex((s) => s.week === week);
+      if (index >= 0) selectSession(index);
     },
     [sessions, selectSession]
   );
 
   const handleToggleComplete = useCallback(() => {
-    toggleComplete(selectedSessionFromStore.id);
-  }, [toggleComplete, selectedSessionFromStore.id]);
+    if (selectedId) toggleComplete(selectedId);
+  }, [toggleComplete, selectedId]);
 
   const handleNoteChange = useCallback(
     (text) => {
-      setNote(selectedSessionFromStore.id, text);
+      if (selectedId) setNote(selectedId, text);
     },
-    [setNote, selectedSessionFromStore.id]
+    [setNote, selectedId]
   );
+
+  if (!selectedSession) {
+    return <div className="text-white p-4">Đang tải...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
@@ -116,9 +104,10 @@ export default function KaratePage() {
             </div>
           </div>
 
-          {/* Chi tiết buổi tập */}
+          {/* Chi tiết buổi tập — key theo id để state nội bộ tự reset khi đổi buổi */}
           <KarateDetail
-            session={selectedSessionFromStore}
+            key={selectedSession.id}
+            session={selectedSession}
             isCompleted={isCurrentSessionCompleted}
             onToggleComplete={handleToggleComplete}
             note={currentSessionNote}
@@ -132,7 +121,7 @@ export default function KaratePage() {
             currentIndex={selectedIndex}
             onSelect={handleSelect}
             completedIds={completedIds}
-            currentWeek={currentWeek}
+            currentWeek={selectedSession.week || 1}
             onSelectWeek={handleSelectWeek}
           />
         </section>

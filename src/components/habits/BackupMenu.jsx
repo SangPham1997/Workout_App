@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { todayKey } from '../../utils/dateKey';
 
 export default function BackupMenu({ onExport, onImport }) {
   const fileInputRef = useRef(null);
@@ -17,7 +18,7 @@ export default function BackupMenu({ onExport, onImport }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `habit-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `habit-backup-${todayKey()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setMessage({ type: 'success', text: 'Đã xuất dữ liệu' });
@@ -38,7 +39,7 @@ export default function BackupMenu({ onExport, onImport }) {
       } else {
         setMessage({ type: 'error', text: `Lỗi: ${result.error}` });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'Không đọc được file' });
     }
 

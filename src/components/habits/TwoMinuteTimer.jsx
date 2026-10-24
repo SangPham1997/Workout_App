@@ -3,80 +3,73 @@ import { hapticCheckIn, playCheckInSound } from '../../utils/habitFeedback';
 
 const TOTAL_SECONDS = 120; // 2 phút
 
-export default function TwoMinuteTimer({
-  isOpen,
-  habit,
-  onComplete,
-  onCancel,
-}) {
+/**
+ * Wrapper: chỉ mount nội dung khi mở, key theo habit → mỗi lần mở là một
+ * phiên 2 phút mới (không cần effect reset state).
+ */
+export default function TwoMinuteTimer({ isOpen, habit, onComplete, onCancel }) {
+  if (!isOpen || !habit) return null;
+  return (
+    <TwoMinuteTimerContent
+      key={habit.id}
+      habit={habit}
+      onComplete={onComplete}
+      onCancel={onCancel}
+    />
+  );
+}
+
+function TwoMinuteTimerContent({ habit, onComplete, onCancel }) {
   const [secondsLeft, setSecondsLeft] = useState(TOTAL_SECONDS);
   const [isPaused, setIsPaused] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
-  const intervalRef = useRef(null);
+
+  // Số giây thật được giữ trong ref: interval chỉ đọc/ghi ref rồi đồng bộ ra
+  // state, tránh side effect bên trong state updater (StrictMode gọi 2 lần).
+  const secondsRef = useRef(TOTAL_SECONDS);
   const completedRef = useRef(false);
+  const finishTimeoutRef = useRef(null);
 
-  // Reset khi mở
-  useEffect(() => {
-    if (isOpen) {
-      setSecondsLeft(TOTAL_SECONDS);
-      setIsPaused(false);
-      setIsFinishing(false);
-      completedRef.current = false;
-    }
-  }, [isOpen, habit?.id]);
-
-  // Đếm ngược
-  useEffect(() => {
-    if (!isOpen || isPaused || completedRef.current) return;
-
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          clearInterval(intervalRef.current);
-          if (!completedRef.current) {
-            completedRef.current = true;
-            setIsFinishing(true);
-            playCheckInSound();
-            hapticCheckIn();
-            setTimeout(() => onComplete(), 800);
-          }
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isOpen, isPaused, onComplete]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  // ESC để đóng
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'Escape' && isOpen && !isFinishing) {
-        onCancel();
-      }
-    };
-    if (isOpen) window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, isFinishing, onCancel]);
-
-  const handleFinishNow = useCallback(() => {
+  const finish = useCallback(() => {
     if (completedRef.current) return;
     completedRef.current = true;
     setIsFinishing(true);
     playCheckInSound();
     hapticCheckIn();
-    setTimeout(() => onComplete(), 400);
+    finishTimeoutRef.current = setTimeout(onComplete, 800);
   }, [onComplete]);
+
+  // Đếm ngược
+  useEffect(() => {
+    if (isPaused || isFinishing) return undefined;
+
+    const id = setInterval(() => {
+      secondsRef.current = Math.max(0, secondsRef.current - 1);
+      setSecondsLeft(secondsRef.current);
+      if (secondsRef.current === 0) finish();
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [isPaused, isFinishing, finish]);
+
+  // Cleanup timeout khi unmount
+  useEffect(
+    () => () => {
+      if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
+    },
+    []
+  );
+
+  // ESC để đóng
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape' && !isFinishing) onCancel();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isFinishing, onCancel]);
+
+  const handleFinishNow = useCallback(() => finish(), [finish]);
 
   const handlePause = useCallback(() => {
     setIsPaused((p) => !p);
@@ -88,8 +81,6 @@ export default function TwoMinuteTimer({
       onCancel();
     }
   }, [isFinishing, onCancel]);
-
-  if (!isOpen || !habit) return null;
 
   const progress = ((TOTAL_SECONDS - secondsLeft) / TOTAL_SECONDS) * 100;
   const minutes = Math.floor(secondsLeft / 60);
@@ -109,7 +100,12 @@ export default function TwoMinuteTimer({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-sm bg-slate-800 rounded-3xl border border-slate-700/60 shadow-2xl overflow-hidden animate-scale-in">
+      <div
+        className="relative w-full max-w-sm bg-slate-800 rounded-3xl border border-slate-700/60 shadow-2xl overflow-hidden animate-scale-in"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hẹn giờ 2 phút"
+      >
         {/* HEADER */}
         <div className="relative px-6 pt-6 pb-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">

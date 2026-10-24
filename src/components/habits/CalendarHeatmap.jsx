@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, memo, useCallback } from 'react';
+import { parseDateKey, toDateKey, todayKey as getTodayKey } from '../../utils/dateKey';
 
 const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const MONTH_LABELS = [
@@ -8,25 +9,30 @@ const MONTH_LABELS = [
 
 const DAY_CHECK_INTERVAL = 60 * 1000;
 
-const startOfDayKey = () => new Date().toISOString().slice(0, 10);
-const startOfDayTime = (key) => new Date(`${key}T00:00:00`).getTime();
+// Kích thước ô (w-3.5 = 14px) + gap-1 (4px) → bước lưới 18px.
+// Nhãn tháng tuyệt đối cần bám đúng bước này, nếu lệch sẽ trôi dần về cuối.
+const CELL_SIZE = 14;
+const CELL_GAP = 4;
+const GRID_LEFT = 32; // cột nhãn thứ: w-6 (24) + mr-1 (4) + gap-1 (4)
 
 /* ====== TOOLTIP ====== */
 function HeatmapTooltip({ data, anchorRect }) {
   if (!data || !anchorRect) return null;
-  const { date, isChecked, isToday, isFuture } = data;
+  const { isChecked, isToday, isFuture, formatted } = data;
 
-  const dateObj = new Date(date);
-  const weekday = DAY_LABELS[
-    dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1
-  ];
-  const formatted = `${weekday}, ${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+  // Kẹp tooltip trong viewport để không bị cắt ở các ô sát mép.
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const center = anchorRect.left + anchorRect.width / 2;
+  const halfWidth = 90;
+  const left = viewportWidth
+    ? Math.min(Math.max(center, halfWidth), viewportWidth - halfWidth)
+    : center;
 
   return (
     <div
       className="fixed z-50 pointer-events-none"
       style={{
-        left: anchorRect.left + anchorRect.width / 2,
+        left,
         top: anchorRect.top - 8,
         transform: 'translate(-50%, -100%)',
       }}
@@ -94,93 +100,117 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
 }) {
   const [tooltip, setTooltip] = useState(null);
   const [hoveredKey, setHoveredKey] = useState(null);
-  const [todayKey, setTodayKey] = useState(startOfDayKey);
+  const [todayDateKey, setTodayDateKey] = useState(getTodayKey);
 
-  const reducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+  const reducedMotion = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    []
+  );
 
   const checkInSet = useMemo(() => new Set(checkIns), [checkIns]);
 
-  // ===== BUILD DAYS GRID (single pass: days + weeks together, O(n)) =====
-  const { days, weeks } = useMemo(() => {
-    const todayTime = startOfDayTime(todayKey);
-
-    const todayDate = new Date(todayTime);
+  // ===== BUILD GRID + STATS (một lượt, O(n)) =====
+  const { weeks, monthLabels, stats } = useMemo(() => {
+    const todayDate = parseDateKey(todayDateKey);
+    const todayTime = todayDate.getTime();
     const dayOfWeek = todayDate.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const currentMonday = new Date(todayTime);
-    currentMonday.setDate(todayDate.getDate() + diffToMonday);
 
-    const startDate = new Date(currentMonday);
-    startDate.setDate(currentMonday.getDate() - (weeksToShow - 1) * 7);
+    const startDate = new Date(todayDate);
+    startDate.setDate(
+      todayDate.getDate() + diffToMonday - (weeksToShow - 1) * 7
+    );
 
-    const days = [];
-    const weeks = Array.from({ length: weeksToShow }, () => []);
-
-    const totalDays = weeksToShow * 7;
-    for (let i = 0; i < totalDays; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
-      const isChecked = checkInSet.has(iso);
-      const isFuture = d.getTime() > todayTime;
-      const isToday = d.getTime() === todayTime;
-      const week = Math.floor(i / 7);
-
-      const day = { date: iso, dayOfWeek: d.getDay(), week, isChecked, isFuture, isToday };
-      days.push(day);
-      weeks[week].push(day);
-    }
-
-    return { days, weeks };
-  }, [todayKey, checkInSet, weeksToShow]);
-
-  // ===== MONTH LABELS =====
-  const monthLabels = useMemo(() => {
-    const labels = [];
+    const weeks = [];
+    const monthLabels = [];
+    const pastDays = [];
     let lastMonth = -1;
-    weeks.forEach((week, i) => {
-      const firstDay = week[0];
-      if (!firstDay) return;
-      const month = new Date(firstDay.date).getMonth();
+
+    for (let w = 0; w < weeksToShow; w++) {
+      const week = [];
+
+      // Nhãn tháng đặt tại tuần có thứ Hai mở đầu tháng mới.
+      const monday = new Date(startDate);
+      monday.setDate(startDate.getDate() + w * 7);
+      const month = monday.getMonth();
       if (month !== lastMonth) {
-        labels.push({ weekIndex: i, label: MONTH_LABELS[month] });
+        monthLabels.push({ weekIndex: w, label: MONTH_LABELS[month] });
         lastMonth = month;
       }
-    });
-    return labels;
-  }, [weeks]);
 
-  // ===== STATS =====
-  const stats = useMemo(() => {
-    const pastDays = days.filter((d) => !d.isFuture);
-    const checkedDays = pastDays.filter((d) => d.isChecked);
-    const totalPast = pastDays.length;
-    const totalChecked = checkedDays.length;
-    const completionRate = totalPast > 0 ? Math.round((totalChecked / totalPast) * 100) : 0;
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + w * 7 + d);
 
-    // Chuỗi hiện tại (tính từ hôm nay ngược lại)
+        const key = toDateKey(date);
+        const isChecked = checkInSet.has(key);
+        const isFuture = date.getTime() > todayTime;
+        const isToday = date.getTime() === todayTime;
+
+        const weekday = DAY_LABELS[(date.getDay() + 6) % 7];
+        const formatted = `${weekday}, ${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+        const status = isChecked
+          ? 'Đã hoàn thành'
+          : isToday
+          ? 'Hôm nay - chưa hoàn thành'
+          : 'Chưa hoàn thành';
+
+        const day = {
+          date: key,
+          isChecked,
+          isFuture,
+          isToday,
+          formatted,
+          ariaLabel: `${formatted} - ${status}`,
+        };
+
+        week.push(day);
+        if (!isFuture) pastDays.push(day);
+      }
+
+      weeks.push(week);
+    }
+
+    // ===== STATS =====
+    let totalChecked = 0;
+    let longestStreak = 0;
+    let run = 0;
+
+    for (const day of pastDays) {
+      if (day.isChecked) {
+        totalChecked++;
+        run++;
+        if (run > longestStreak) longestStreak = run;
+      } else {
+        run = 0;
+      }
+    }
+
+    // Chuỗi hiện tại: tính ngược từ hôm nay, bỏ qua hôm nay nếu chưa check-in.
     let currentStreak = 0;
-    const reversed = [...pastDays].reverse();
-    for (const d of reversed) {
-      if (d.isChecked) currentStreak++;
-      else if (d.isToday) continue;
+    for (let i = pastDays.length - 1; i >= 0; i--) {
+      const day = pastDays[i];
+      if (day.isChecked) currentStreak++;
+      else if (day.isToday) continue;
       else break;
     }
 
-    // Chuỗi dài nhất
-    let longestStreak = 0;
-    let tempStreak = 0;
-    for (const d of pastDays) {
-      if (d.isChecked) {
-        tempStreak++;
-        longestStreak = Math.max(longestStreak, tempStreak);
-      } else {
-        tempStreak = 0;
-      }
-    }
-
-    return { totalChecked, totalPast, completionRate, currentStreak, longestStreak };
-  }, [days]);
+    const totalPast = pastDays.length;
+    return {
+      weeks,
+      monthLabels,
+      stats: {
+        totalChecked,
+        totalPast,
+        completionRate:
+          totalPast > 0 ? Math.round((totalChecked / totalPast) * 100) : 0,
+        currentStreak,
+        longestStreak,
+      },
+    };
+  }, [todayDateKey, checkInSet, weeksToShow]);
 
   // ===== HOVER HANDLERS =====
   const handleCellHover = useCallback((day, e) => {
@@ -202,21 +232,19 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, []);
 
-  // ===== RESET COMPLETION KHI SANG NGÀY MỚI =====
-  // Nếu app để mở qua nửa đêm, todayKey sẽ lỗi thời → kiểm tra mỗi phút,
-  // khi phát hiện ngày mới thì force re-render (isToday/isChecked tính lại theo ngày mới)
-  // và reset tooltip/highlight nên ô "hôm nay" về trạng thái chưa hoàn thành (trừ khi check-in hôm nay).
+  // ===== RESET KHI SANG NGÀY MỚI =====
+  // App mở qua nửa đêm: kiểm tra mỗi phút, sang ngày mới thì tính lại lưới.
   useEffect(() => {
     const timer = setInterval(() => {
-      const nextKey = startOfDayKey();
-      if (nextKey !== todayKey) {
-        setTodayKey(nextKey);
+      const nextKey = getTodayKey();
+      if (nextKey !== todayDateKey) {
+        setTodayDateKey(nextKey);
         setTooltip(null);
         setHoveredKey(null);
       }
     }, DAY_CHECK_INTERVAL);
     return () => clearInterval(timer);
-  }, [todayKey]);
+  }, [todayDateKey]);
 
   // ===== EMPTY STATE =====
   if (checkIns.length === 0) {
@@ -237,6 +265,8 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
     );
   }
 
+  const cellStep = CELL_SIZE + CELL_GAP;
+
   return (
     <div className="bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-5 overflow-hidden" role="region" aria-label="Lịch heatmap thói quen">
       {/* ===== STATS HEADER ===== */}
@@ -251,9 +281,15 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
       <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700" aria-label="Lưới check-in">
         <div className="inline-block min-w-full">
           {/* Month labels */}
-          <div className="flex gap-1 mb-2 pl-8 relative h-4" aria-hidden="true">
-            {monthLabels.map((m, i) => (
-              <div key={`${m.weekIndex}-${i}`} className="absolute text-[10px] text-slate-500 uppercase tracking-wider font-bold" style={{ left: `${32 + m.weekIndex * 15}px` }}>{m.label}</div>
+          <div className="relative h-4 mb-2" aria-hidden="true">
+            {monthLabels.map((m) => (
+              <div
+                key={m.weekIndex}
+                className="absolute text-[10px] text-slate-500 uppercase tracking-wider font-bold"
+                style={{ left: `${GRID_LEFT + m.weekIndex * cellStep}px` }}
+              >
+                {m.label}
+              </div>
             ))}
           </div>
 
@@ -269,30 +305,16 @@ const CalendarHeatmap = memo(function CalendarHeatmap({
             <div className="flex gap-1" role="grid" aria-label="Các ngày check-in">
               {weeks.map((week, wi) => (
                 <div key={wi} className="flex flex-col gap-1" role="row">
-                  {[1, 2, 3, 4, 5, 6, 0].map((dow) => {
-                    const day = week.find((d) => d.dayOfWeek === dow);
-                    if (!day) {
-                      return (
-                        <div
-                          key={dow}
-                          className="w-3.5 h-3.5 rounded-[3px] bg-transparent"
-                        />
-                      );
-                    }
-
+                  {week.map((day) => {
                     const isHovered = hoveredKey === day.date;
-                    const dateObj = new Date(day.date);
-                    const weekday = DAY_LABELS[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
-                    const formatted = `${weekday}, ${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
-                    const ariaLabel = `${formatted} - ${day.isChecked ? 'Đã hoàn thành' : day.isToday ? 'Hôm nay - chưa hoàn thành' : 'Chưa hoàn thành'}`;
 
                     return (
                       <div
-                        key={dow}
+                        key={day.date}
                         onMouseEnter={(e) => handleCellHover(day, e)}
                         onMouseLeave={handleCellLeave}
                         role="gridcell"
-                        aria-label={ariaLabel}
+                        aria-label={day.ariaLabel}
                         aria-checked={day.isChecked ? 'true' : 'false'}
                         tabIndex={-1}
                         className={getCellClass({ ...day, isHovered, reducedMotion })}

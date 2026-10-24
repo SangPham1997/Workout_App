@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 
+/**
+ * Wrapper: chỉ mount nội dung khi mở, key theo habit đích → countdown tự reset
+ * mỗi lần hiện prompt (không cần effect reset state).
+ */
 export default function HabitChainPrompt({
   isOpen,
   fromHabit,
@@ -8,23 +12,39 @@ export default function HabitChainPrompt({
   onDismiss,
   autoDismissSeconds = 10,
 }) {
+  if (!isOpen || !fromHabit || !toHabit) return null;
+  return (
+    <ChainPromptContent
+      key={toHabit.id}
+      fromHabit={fromHabit}
+      toHabit={toHabit}
+      onConfirm={onConfirm}
+      onDismiss={onDismiss}
+      autoDismissSeconds={autoDismissSeconds}
+    />
+  );
+}
+
+function ChainPromptContent({
+  fromHabit,
+  toHabit,
+  onConfirm,
+  onDismiss,
+  autoDismissSeconds,
+}) {
   const [countdown, setCountdown] = useState(autoDismissSeconds);
 
   useEffect(() => {
-    if (isOpen) setCountdown(autoDismissSeconds);
-  }, [isOpen, autoDismissSeconds]);
+    const timer = setInterval(
+      () => setCountdown((c) => Math.max(0, c - 1)),
+      1000
+    );
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
-    if (countdown <= 0) {
-      onDismiss();
-      return;
-    }
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [isOpen, countdown, onDismiss]);
-
-  if (!isOpen || !fromHabit || !toHabit) return null;
+    if (countdown === 0) onDismiss();
+  }, [countdown, onDismiss]);
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md animate-slide-up">

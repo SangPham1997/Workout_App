@@ -32,6 +32,20 @@ export const useExerciseStore = create(
     {
       name: 'exercise-storage',
       partialize: (state) => ({ selectedIndex: state.selectedIndex, completedWeeks: state.completedWeeks }),
+      // Dữ liệu bài tập có thể đổi giữa các phiên bản → index đã lưu có thể
+      // vượt quá độ dài mảng. Clamp khi hydrate để không bị "kẹt" màn hình loading.
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted || {}) };
+        const max = merged.exercises.length - 1;
+        if (
+          !Number.isInteger(merged.selectedIndex) ||
+          merged.selectedIndex < 0 ||
+          merged.selectedIndex > max
+        ) {
+          merged.selectedIndex = 0;
+        }
+        return merged;
+      },
     }
   )
 );

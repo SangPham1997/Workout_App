@@ -1,9 +1,5 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import {
-  useKarateIndex,
-  useKarateSessions,
-} from '../../stores/selectors';
 import { useHabitStore } from '../../stores/useHabitStore';
 
 /* ============ NAV ITEMS ============ */
@@ -46,17 +42,13 @@ const COLOR_CLASSES = {
 
 export default memo(function Header() {
   const { pathname } = useLocation();
-  const karateSessions = useKarateSessions();
-  const karateIndex = useKarateIndex();
 
-  const habitsCount = useHabitStore((s) => s.habits?.length || 0);
+  // Chỉ cần số habit để hiện badge; không subscribe vào session/karate để
+  // Header không re-render khi đổi buổi tập.
+  const habitsCount = useHabitStore((s) => s.habits.length);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-
-  const total = pathname.startsWith('/karate')
-    ? karateSessions[karateIndex]?.duration ?? 0
-    : 0;
 
   // Đóng menu khi click ngoài
   useEffect(() => {

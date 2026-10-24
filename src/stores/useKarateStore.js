@@ -4,7 +4,7 @@ import { karateSessions } from '../data/karateSessions';
 
 export const useKarateStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       sessions: karateSessions,
       selectedIndex: 0,
       completedIds: [],   // các buổi đã đánh dấu hoàn thành (lưu localStorage)
@@ -26,13 +26,6 @@ export const useKarateStore = create(
           else delete notes[id];
           return { notes };
         }),
-
-      getSelectedSession: () => {
-        const { sessions, selectedIndex } = get();
-        return sessions[selectedIndex] || null;
-      },
-
-      resetAll: () => set({ selectedIndex: 0 }),
     }),
     {
       name: 'karate-storage',
@@ -41,6 +34,19 @@ export const useKarateStore = create(
         completedIds: state.completedIds,
         notes: state.notes,
       }),
+      // Clamp index khi hydrate (dữ liệu buổi tập có thể thay đổi giữa các bản).
+      merge: (persisted, current) => {
+        const merged = { ...current, ...(persisted || {}) };
+        const max = merged.sessions.length - 1;
+        if (
+          !Number.isInteger(merged.selectedIndex) ||
+          merged.selectedIndex < 0 ||
+          merged.selectedIndex > max
+        ) {
+          merged.selectedIndex = 0;
+        }
+        return merged;
+      },
     }
   )
 );

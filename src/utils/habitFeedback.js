@@ -94,8 +94,3 @@ export const hapticUndo = () => {
   playUndoSound();
   vibrate(30);
 };
-
-export const hapticStreak = () => {
-  playStreakSound();
-  vibrate([100, 50, 100, 50, 100]);
-};

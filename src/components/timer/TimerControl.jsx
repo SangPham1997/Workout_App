@@ -195,8 +195,9 @@ function TimerControlInner({
             <i className="fa-solid fa-rotate-right" aria-hidden="true" />
           </button>
           <button
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600" 
-            onClick={onToggleSound} aria-label="Toggle sound">
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
+            onClick={onToggleSound}
+            aria-label="Toggle sound">
             {soundEnabled ? '🔊' : '🔇'}
           </button>
         </div>
@@ -205,25 +206,7 @@ function TimerControlInner({
   );
 }
 
-const arePropsEqual = (prev, next) => {
-  const prevMins = String(Math.floor(prev.timeLeft / 60)).padStart(2, '0');
-  const prevSecs = String(prev.timeLeft % 60).padStart(2, '0');
-  const nextMins = String(Math.floor(next.timeLeft / 60)).padStart(2, '0');
-  const nextSecs = String(next.timeLeft % 60).padStart(2, '0');
-
-  return (
-    prevMins === nextMins &&
-    prevSecs === nextSecs &&
-    prev.isRunning === next.isRunning &&
-    prev.isCompleted === next.isCompleted &&
-    prev.total === next.total &&
-    prev.soundEnabled === next.soundEnabled &&        // ← THÊM
-    prev.onToggleSound === next.onToggleSound &&      // ← THÊM
-    prev.onStart === next.onStart &&
-    prev.onPause === next.onPause &&
-    prev.onReset === next.onReset &&
-    prev.onResetAndStart === next.onResetAndStart
-  );
-};
-
-export default memo(TimerControlInner, arePropsEqual);
+// Mọi prop đều là primitive/callback ổn định → memo so sánh nông là đủ.
+// (Bản cũ tự viết comparator nhưng so sánh `prev.total` — prop không tồn tại —
+// và bỏ sót phase/currentSet/totalSets nên có lúc UI không cập nhật.)
+export default memo(TimerControlInner);

@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useHabitStore } from '../stores/useHabitStore';
+import {
+  selectHabitActions,
+  selectNextChainHabit,
+  selectTodayHabits,
+  useHabitStore,
+} from '../stores/useHabitStore';
 import { playStreakSound, hapticCheckIn } from '../utils/habitFeedback';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -15,44 +20,24 @@ import TwoMinuteTimer from '../components/habits/TwoMinuteTimer';
 import HabitStats from '../components/habits/HabitStats';
 import BackupMenu from '../components/habits/BackupMenu';
 
+const EMPTY_DATES = Object.freeze([]);
+
 export default function HabitsPage() {
+  // Derived list: object của habit không đổi thì giữ nguyên tham chiếu,
+  // nhờ vậy HabitCard (memo) bỏ qua re-render khi habit khác thay đổi.
+  const todayHabits = useHabitStore(useShallow(selectTodayHabits));
+  const habits = useHabitStore((s) => s.habits);
   const {
-    habits,
-    checkIns,
-    getTodayHabits,
-    checkIn,
     undoCheckIn,
     deleteHabit,
     archiveHabit,
     updateHabit,
-    useFreeze,
+    applyFreeze,
     resetMonthlyFreeze,
-    getCheckIns,
     markTwoMinuteCheckIn,
-    canUseTwoMinute,
-    getTwoMinuteRemaining,
     exportData,
     importData,
-  } = useHabitStore(
-    useShallow((state) => ({
-      habits: state.habits,
-      checkIns: state.checkIns,
-      getTodayHabits: state.getTodayHabits,
-      checkIn: state.checkIn,
-      undoCheckIn: state.undoCheckIn,
-      deleteHabit: state.deleteHabit,
-      archiveHabit: state.archiveHabit,
-      updateHabit: state.updateHabit,
-      useFreeze: state.useFreeze,
-      resetMonthlyFreeze: state.resetMonthlyFreeze,
-      getCheckIns: state.getCheckIns,
-      markTwoMinuteCheckIn: state.markTwoMinuteCheckIn,
-      canUseTwoMinute: state.canUseTwoMinute,
-      getTwoMinuteRemaining: state.getTwoMinuteRemaining,
-      exportData: state.exportData,
-      importData: state.importData,
-    }))
-  );
+  } = useHabitStore(useShallow(selectHabitActions));
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
@@ -64,14 +49,16 @@ export default function HabitsPage() {
     resetMonthlyFreeze();
   }, [resetMonthlyFreeze]);
 
-  const todayHabits = useMemo(() => getTodayHabits(), [habits, checkIns]);
+  const { totalStreak, completedToday } = useMemo(() => {
+    let maxStreak = 0;
+    let completed = 0;
+    for (const habit of todayHabits) {
+      if (habit.streak > maxStreak) maxStreak = habit.streak;
+      if (habit.isCheckedInToday) completed++;
+    }
+    return { totalStreak: maxStreak, completedToday: completed };
+  }, [todayHabits]);
 
-  const totalStreak = useMemo(
-    () => todayHabits.reduce((max, h) => Math.max(max, h.streak), 0),
-    [todayHabits]
-  );
-
-  const completedToday = todayHabits.filter((h) => h.isCheckedInToday).length;
   const totalHabits = todayHabits.length;
 
   const selectedHabit = useMemo(() => {
@@ -79,39 +66,36 @@ export default function HabitsPage() {
     return todayHabits.find((h) => h.id === selectedHabitId) || todayHabits[0];
   }, [selectedHabitId, todayHabits]);
 
-  // ===== CHAIN =====
-  const findNextInChain = useCallback(
-    (habitId, excludeId = null) =>
-      todayHabits.find(
-        (h) =>
-          h.stackAfter === habitId &&
-          !h.isCheckedInToday &&
-          h.id !== excludeId
-      ) || null,
-    [todayHabits]
-  );
+  const selectedHabitIdForHeatmap = selectedHabit?.id;
+  const checkInDates =
+    useHabitStore((s) =>
+      selectedHabitIdForHeatmap
+        ? s.checkIns[selectedHabitIdForHeatmap]
+        : undefined
+    ) || EMPTY_DATES;
 
-  // ===== HANDLERS (không toast) =====
-  const handleCheckIn = useCallback(
-    (habitId) => {
-      checkIn(habitId);
-      const habit = todayHabits.find((h) => h.id === habitId);
+  // ===== HANDLERS =====
+  // Đọc state trực tiếp từ store để callback giữ được tham chiếu ổn định
+  // (nếu phụ thuộc `todayHabits` thì mọi HabitCard sẽ re-render sau mỗi check-in).
+  const handleCheckIn = useCallback((habitId) => {
+    const state = useHabitStore.getState();
+    const habit = selectTodayHabits(state).find((h) => h.id === habitId);
 
-      // Streak milestone: chỉ phát sound, không toast
-      if (habit && (habit.streak + 1) % 7 === 0 && habit.streak > 0) {
-        setTimeout(() => playStreakSound(), 600);
-      }
+    state.checkIn(habitId);
 
-      const next = findNextInChain(habitId, habitId);
-      if (next && habit) {
-        setTimeout(
-          () => setChainPrompt({ fromHabit: habit, toHabit: next }),
-          600
-        );
-      }
-    },
-    [checkIn, todayHabits, findNextInChain]
-  );
+    // Streak milestone: chỉ phát sound, không toast
+    if (habit && habit.streak > 0 && (habit.streak + 1) % 7 === 0) {
+      setTimeout(() => playStreakSound(), 600);
+    }
+
+    const next = selectNextChainHabit(useHabitStore.getState(), habitId);
+    if (next && habit) {
+      setTimeout(
+        () => setChainPrompt({ fromHabit: habit, toHabit: next }),
+        600
+      );
+    }
+  }, []);
 
   const handleUndoCheckIn = useCallback(
     (habitId) => {
@@ -147,21 +131,21 @@ export default function HabitsPage() {
     [editingHabit, updateHabit]
   );
 
-  const handleUseFreeze = useCallback(
+  const handleApplyFreeze = useCallback(
     (habitId) => {
-      useFreeze(habitId);
+      applyFreeze(habitId);
     },
-    [useFreeze]
+    [applyFreeze]
   );
 
   const handleChainConfirm = useCallback(() => {
     if (!chainPrompt) return;
-    checkIn(chainPrompt.toHabit.id);
+    useHabitStore.getState().checkIn(chainPrompt.toHabit.id);
     hapticCheckIn();
     setChainPrompt(null);
 
-    const next = findNextInChain(
-      chainPrompt.toHabit.id,
+    const next = selectNextChainHabit(
+      useHabitStore.getState(),
       chainPrompt.toHabit.id
     );
     if (next) {
@@ -174,35 +158,34 @@ export default function HabitsPage() {
         700
       );
     }
-  }, [chainPrompt, checkIn, findNextInChain]);
+  }, [chainPrompt]);
 
-  const handleTwoMinuteStart = useCallback(
-    (habitId) => {
-      if (!canUseTwoMinute(habitId)) return;
-      const habit = todayHabits.find((h) => h.id === habitId);
-      if (habit) setTwoMinuteHabit(habit);
-    },
-    [todayHabits, canUseTwoMinute]
-  );
+  const handleTwoMinuteStart = useCallback((habitId) => {
+    const state = useHabitStore.getState();
+    if (!state.canUseTwoMinute(habitId)) return;
+    const habit = selectTodayHabits(state).find((h) => h.id === habitId);
+    if (habit) setTwoMinuteHabit(habit);
+  }, []);
 
   const handleTwoMinuteComplete = useCallback(() => {
     if (!twoMinuteHabit) return;
-    markTwoMinuteCheckIn(twoMinuteHabit.id);
 
-    const habitId = twoMinuteHabit.id;
-    const snap = twoMinuteHabit;
+    const snapshot = twoMinuteHabit;
+    markTwoMinuteCheckIn(snapshot.id);
     setTwoMinuteHabit(null);
 
-    const next = findNextInChain(habitId, habitId);
+    const next = selectNextChainHabit(useHabitStore.getState(), snapshot.id);
     if (next) {
       setTimeout(
-        () => setChainPrompt({ fromHabit: snap, toHabit: next }),
+        () => setChainPrompt({ fromHabit: snapshot, toHabit: next }),
         700
       );
     }
-  }, [twoMinuteHabit, markTwoMinuteCheckIn, findNextInChain]);
+  }, [twoMinuteHabit, markTwoMinuteCheckIn]);
 
   const handleTwoMinuteCancel = useCallback(() => setTwoMinuteHabit(null), []);
+
+  const openAddModal = useCallback(() => setIsModalOpen(true), []);
 
   const today = new Date().toLocaleDateString('vi-VN', {
     weekday: 'long',
@@ -248,11 +231,7 @@ export default function HabitsPage() {
                 <div
                   className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
                   style={{
-                    width: `${
-                      totalHabits > 0
-                        ? (completedToday / totalHabits) * 100
-                        : 0
-                    }%`,
+                    width: `${(completedToday / totalHabits) * 100}%`,
                   }}
                 />
               </div>
@@ -272,7 +251,7 @@ export default function HabitsPage() {
             </h2>
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={openAddModal}
               className="px-3 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-bold transition flex items-center gap-1.5 active:scale-95"
             >
               <i className="fa-solid fa-plus text-[10px]"></i>
@@ -282,28 +261,26 @@ export default function HabitsPage() {
 
           <HabitList
             habits={todayHabits}
-            checkInsMap={checkIns}
             onCheckIn={handleCheckIn}
             onUndoCheckIn={handleUndoCheckIn}
             onDelete={handleDelete}
             onEdit={handleEdit}
             onArchive={handleArchive}
-            onUseFreeze={handleUseFreeze}
-            onAddClick={() => setIsModalOpen(true)}
+            onApplyFreeze={handleApplyFreeze}
+            onAddClick={openAddModal}
             onTwoMinuteStart={handleTwoMinuteStart}
-            getTwoMinuteRemaining={getTwoMinuteRemaining}
           />
         </section>
 
         {/* HEATMAP */}
-        {todayHabits.length > 0 && selectedHabit && (
+        {totalHabits > 0 && selectedHabit && (
           <section className="mb-5">
             <div className="flex items-center justify-between mb-3 px-1 flex-wrap gap-2">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                 <i className="fa-solid fa-chart-simple text-emerald-400"></i>
                 12 tuần qua
               </h2>
-              {todayHabits.length > 1 && (
+              {totalHabits > 1 && (
                 <HabitSelector
                   habits={todayHabits}
                   selectedId={selectedHabit.id}
@@ -312,7 +289,7 @@ export default function HabitsPage() {
               )}
             </div>
             <CalendarHeatmap
-              checkIns={getCheckIns(selectedHabit.id)}
+              checkIns={checkInDates}
               color={selectedHabit.color}
               weeksToShow={12}
             />

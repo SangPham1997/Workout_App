@@ -1,34 +1,149 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+  addDaysKey,
+  getMonthKey,
+  getWeekStartKey,
+  todayKey,
+} from '../utils/dateKey';
+import { calculateLongestStreak, calculateStreak } from '../utils/habitStats';
+import { TWO_MINUTE_MAX_PER_WEEK } from '../data/habitSettings';
 
-const TWO_MINUTE_MAX_PER_WEEK = 2;
+const EMPTY_DATES = Object.freeze([]);
 
-// ===== STREAK CALCULATION =====
-function calculateStreak(dates = []) {
-  if (!dates.length) return 0;
-  const sorted = [...dates].sort().reverse();
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
-  let streak = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const diff = Math.round(
-      (new Date(sorted[i - 1]) - new Date(sorted[i])) / 86400000
-    );
-    if (diff === 1) streak++;
-    else break;
-  }
-  return streak;
+// ===== DERIVED STATE CACHE =====
+// `selectTodayHabits` tạo object mới cho mỗi habit. Nếu tạo lại mọi object ở
+// mọi lần check-in, toàn bộ HabitCard (memo) sẽ re-render dù chỉ 1 habit đổi.
+// Cache theo id + tham chiếu habit/dates/usage giữ nguyên object cũ khi dữ liệu
+// của habit đó không thay đổi → memo của HabitCard mới có tác dụng.
+const derivedCache = new Map();
+
+function clearDerivedCache() {
+  derivedCache.clear();
 }
 
-// ===== WEEK START =====
-function getWeekStart() {
-  const today = new Date();
-  const day = today.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diff);
-  return monday.toISOString().slice(0, 10);
+function getTwoMinuteUsageCount(usage, weekStart) {
+  return usage && usage.weekStart === weekStart ? usage.count : 0;
+}
+
+/**
+ * Selector thuần (dùng trực tiếp với zustand + useShallow).
+ * Trả về danh sách habit chưa archive kèm dữ liệu dẫn xuất.
+ */
+export function selectTodayHabits(state) {
+  const today = todayKey();
+  const weekStart = getWeekStartKey();
+  const yesterday = addDaysKey(today, -1);
+  const result = [];
+
+  for (const habit of state.habits) {
+    if (habit.archivedAt) continue;
+
+    const dates = state.checkIns[habit.id] || EMPTY_DATES;
+    const usage = state.twoMinuteUsage[habit.id];
+    const cached = derivedCache.get(habit.id);
+
+    if (
+      cached &&
+      cached.habit === habit &&
+      cached.dates === dates &&
+      cached.usage === usage &&
+      cached.today === today
+    ) {
+      result.push(cached.value);
+      continue;
+    }
+
+    const isCheckedInToday = dates.includes(today);
+    const streak = calculateStreak(dates, today);
+    const missedYesterday =
+      !isCheckedInToday &&
+      streak === 0 &&
+      dates.length > 0 &&
+      !dates.includes(yesterday);
+
+    const value = {
+      ...habit,
+      isCheckedInToday,
+      streak,
+      totalCheckIns: dates.length,
+      longestStreak: calculateLongestStreak(dates),
+      missedYesterday,
+      canFreeze: missedYesterday && (habit.freezeAvailable || 0) > 0,
+      twoMinuteRemaining: Math.max(
+        0,
+        TWO_MINUTE_MAX_PER_WEEK - getTwoMinuteUsageCount(usage, weekStart)
+      ),
+    };
+
+    derivedCache.set(habit.id, { habit, dates, usage, today, value });
+    result.push(value);
+  }
+
+  // Giữ nguyên thứ tự cũ: chuỗi dài lên trước (sort ổn định của JS).
+  return result.sort((a, b) => b.streak - a.streak);
+}
+
+/** Habit kế tiếp trong chuỗi (habit stacking) đang chưa được check-in. */
+export function selectNextChainHabit(state, habitId) {
+  return (
+    selectTodayHabits(state).find(
+      (habit) =>
+        habit.id !== habitId &&
+        habit.stackAfter === habitId &&
+        !habit.isCheckedInToday
+    ) || null
+  );
+}
+
+/** Gom các action (tham chiếu luôn ổn định) để subscribe 1 lần. */
+export function selectHabitActions(state) {
+  return {
+    addHabit: state.addHabit,
+    updateHabit: state.updateHabit,
+    archiveHabit: state.archiveHabit,
+    unarchiveHabit: state.unarchiveHabit,
+    deleteHabit: state.deleteHabit,
+    checkIn: state.checkIn,
+    markTwoMinuteCheckIn: state.markTwoMinuteCheckIn,
+    undoCheckIn: state.undoCheckIn,
+    applyFreeze: state.applyFreeze,
+    resetMonthlyFreeze: state.resetMonthlyFreeze,
+    exportData: state.exportData,
+    importData: state.importData,
+    canUseTwoMinute: state.canUseTwoMinute,
+  };
+}
+
+// ===== VALIDATION (dữ liệu import từ file ngoài) =====
+const isValidHabit = (habit) =>
+  habit && typeof habit === 'object' && typeof habit.id === 'string' && habit.id;
+
+const isValidDateKey = (value) =>
+  typeof value === 'string' && !Number.isNaN(Date.parse(value));
+
+function sanitizeCheckIns(raw) {
+  const checkIns = {};
+  if (!raw || typeof raw !== 'object') return checkIns;
+
+  for (const [habitId, dates] of Object.entries(raw)) {
+    if (!Array.isArray(dates)) continue;
+    const clean = [...new Set(dates.filter(isValidDateKey))].sort();
+    if (clean.length) checkIns[habitId] = clean;
+  }
+  return checkIns;
+}
+
+function sanitizeTwoMinuteUsage(raw) {
+  const usage = {};
+  if (!raw || typeof raw !== 'object') return usage;
+
+  for (const [habitId, value] of Object.entries(raw)) {
+    if (!value || typeof value !== 'object') continue;
+    if (typeof value.weekStart !== 'string' || !Number.isFinite(value.count)) continue;
+    usage[habitId] = { weekStart: value.weekStart, count: value.count };
+  }
+  return usage;
 }
 
 // ===== STORE =====
@@ -45,7 +160,7 @@ export const useHabitStore = create(
       addHabit: (habit) => {
         const newHabit = {
           id: `habit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: todayKey(),
           freezeAvailable: 1,
           archivedAt: null,
           twoMinuteMode: false,
@@ -68,9 +183,7 @@ export const useHabitStore = create(
       archiveHabit: (id) =>
         set((state) => ({
           habits: state.habits.map((h) =>
-            h.id === id
-              ? { ...h, archivedAt: new Date().toISOString().slice(0, 10) }
-              : h
+            h.id === id ? { ...h, archivedAt: todayKey() } : h
           ),
         })),
 
@@ -89,6 +202,7 @@ export const useHabitStore = create(
           const nextTwoMin = { ...state.twoMinuteUsage };
           delete nextCheckIns[id];
           delete nextTwoMin[id];
+          derivedCache.delete(id);
           return {
             habits: state.habits.filter((h) => h.id !== id),
             checkIns: nextCheckIns,
@@ -98,9 +212,9 @@ export const useHabitStore = create(
 
       // ✅ CHECK-IN
       checkIn: (habitId, date) => {
-        const d = date || new Date().toISOString().slice(0, 10);
+        const d = date || todayKey();
         set((state) => {
-          const current = state.checkIns[habitId] || [];
+          const current = state.checkIns[habitId] || EMPTY_DATES;
           if (current.includes(d)) return state;
           return {
             checkIns: {
@@ -115,11 +229,11 @@ export const useHabitStore = create(
       markTwoMinuteCheckIn: (habitId) => {
         if (!get().canUseTwoMinute(habitId)) return false;
 
-        const weekStart = getWeekStart();
-        const today = new Date().toISOString().slice(0, 10);
+        const weekStart = getWeekStartKey();
+        const today = todayKey();
 
         set((state) => {
-          const current = state.checkIns[habitId] || [];
+          const current = state.checkIns[habitId] || EMPTY_DATES;
           const nextCheckIns = current.includes(today)
             ? state.checkIns
             : { ...state.checkIns, [habitId]: [...current, today].sort() };
@@ -142,35 +256,37 @@ export const useHabitStore = create(
 
       // ↩️ UNDO
       undoCheckIn: (habitId, date) => {
-        const d = date || new Date().toISOString().slice(0, 10);
-        set((state) => ({
-          checkIns: {
-            ...state.checkIns,
-            [habitId]: (state.checkIns[habitId] || []).filter((x) => x !== d),
-          },
-        }));
+        const d = date || todayKey();
+        set((state) => {
+          const current = state.checkIns[habitId];
+          if (!current?.includes(d)) return state;
+          return {
+            checkIns: {
+              ...state.checkIns,
+              [habitId]: current.filter((x) => x !== d),
+            },
+          };
+        });
       },
 
       // 🧊 USE FREEZE
-      useFreeze: (habitId) => {
+      applyFreeze: (habitId) => {
         const habit = get().habits.find((h) => h.id === habitId);
-        if (!habit || habit.freezeAvailable <= 0) return false;
+        if (!habit || (habit.freezeAvailable || 0) <= 0) return false;
 
-        const yesterday = new Date(Date.now() - 86400000)
-          .toISOString()
-          .slice(0, 10);
+        const yesterday = addDaysKey(todayKey(), -1);
+        const current = get().checkIns[habitId] || EMPTY_DATES;
+        if (current.includes(yesterday)) return false;
 
         set((state) => ({
           habits: state.habits.map((h) =>
             h.id === habitId
-              ? { ...h, freezeAvailable: h.freezeAvailable - 1 }
+              ? { ...h, freezeAvailable: (h.freezeAvailable || 0) - 1 }
               : h
           ),
           checkIns: {
             ...state.checkIns,
-            [habitId]: [
-              ...new Set([...(state.checkIns[habitId] || []), yesterday]),
-            ].sort(),
+            [habitId]: [...current, yesterday].sort(),
           },
         }));
         return true;
@@ -178,13 +294,17 @@ export const useHabitStore = create(
 
       // 🔄 RESET MONTHLY FREEZE
       resetMonthlyFreeze: () => {
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const lastMonth = get().lastOpenDate?.slice(0, 7);
+        const currentMonth = getMonthKey(todayKey());
+        const lastMonth = get().lastOpenDate
+          ? getMonthKey(get().lastOpenDate)
+          : null;
         if (lastMonth === currentMonth) return;
 
         set((state) => ({
-          habits: state.habits.map((h) => ({ ...h, freezeAvailable: 1 })),
-          lastOpenDate: new Date().toISOString().slice(0, 10),
+          habits: state.habits.map((h) =>
+            h.freezeAvailable === 1 ? h : { ...h, freezeAvailable: 1 }
+          ),
+          lastOpenDate: todayKey(),
         }));
       },
 
@@ -209,101 +329,35 @@ export const useHabitStore = create(
       importData: (jsonString) => {
         try {
           const data = JSON.parse(jsonString);
-          if (!Array.isArray(data.habits)) {
+          if (!data || !Array.isArray(data.habits)) {
             return { success: false, error: 'Định dạng không hợp lệ' };
           }
+
+          const habits = data.habits.filter(isValidHabit);
+          clearDerivedCache();
           set({
-            habits: data.habits,
-            checkIns: data.checkIns || {},
-            twoMinuteUsage: data.twoMinuteUsage || {},
-            lastOpenDate: data.lastOpenDate || null,
+            habits,
+            checkIns: sanitizeCheckIns(data.checkIns),
+            twoMinuteUsage: sanitizeTwoMinuteUsage(data.twoMinuteUsage),
+            lastOpenDate:
+              typeof data.lastOpenDate === 'string' ? data.lastOpenDate : null,
           });
-          return { success: true, count: data.habits.length };
+          return { success: true, count: habits.length };
         } catch (e) {
           return { success: false, error: e.message };
         }
       },
 
-      // ===== SELECTORS =====
-      getTodayHabits: () => {
-        const today = new Date().toISOString().slice(0, 10);
-        const state = get();
-        return state.habits
-          .filter((h) => !h.archivedAt)
-          .map((h) => {
-            const dates = state.checkIns[h.id] || [];
-            return {
-              ...h,
-              isCheckedInToday: dates.includes(today),
-              streak: calculateStreak(dates),
-              totalCheckIns: dates.length,
-              longestStreak: get().getLongestStreak(h.id),
-            };
-          })
-          .sort((a, b) => b.streak - a.streak);
-      },
-
-      getArchivedHabits: () =>
-        get().habits.filter((h) => h.archivedAt),
-
-      getStreak: (habitId) => calculateStreak(get().checkIns[habitId] || []),
-
-      getCheckIns: (habitId) => get().checkIns[habitId] || [],
-
-      getLongestStreak: (habitId) => {
-        const dates = [...(get().checkIns[habitId] || [])].sort();
-        if (!dates.length) return 0;
-        let longest = 1;
-        let current = 1;
-        for (let i = 1; i < dates.length; i++) {
-          const diff = Math.round(
-            (new Date(dates[i]) - new Date(dates[i - 1])) / 86400000
-          );
-          if (diff === 1) {
-            current++;
-            longest = Math.max(longest, current);
-          } else current = 1;
-        }
-        return longest;
-      },
-
-      // 📊 HABIT STATS
-      getHabitStats: (habitId) => {
-        const dates = get().checkIns[habitId] || [];
-        const today = new Date();
-        let last30 = 0;
-        for (let i = 0; i < 30; i++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() - i);
-          if (dates.includes(d.toISOString().slice(0, 10))) last30++;
-        }
-        return {
-          currentStreak: calculateStreak(dates),
-          longestStreak: get().getLongestStreak(habitId),
-          totalCheckIns: dates.length,
-          last30Days: last30,
-          completionRate: Math.round((last30 / 30) * 100),
-        };
-      },
-
       // ⏱️ TWO-MINUTE USAGE
-      getWeekStart,
-
-      getTwoMinuteUsage: (habitId) => {
-        const weekStart = getWeekStart();
-        const usage = get().twoMinuteUsage[habitId];
-        if (!usage || usage.weekStart !== weekStart) return 0;
-        return usage.count;
-      },
-
       canUseTwoMinute: (habitId) => {
         const habit = get().habits.find((h) => h.id === habitId);
         if (!habit?.twoMinuteMode) return false;
-        return get().getTwoMinuteUsage(habitId) < TWO_MINUTE_MAX_PER_WEEK;
+        const usage = get().twoMinuteUsage[habitId];
+        return (
+          getTwoMinuteUsageCount(usage, getWeekStartKey()) <
+          TWO_MINUTE_MAX_PER_WEEK
+        );
       },
-
-      getTwoMinuteRemaining: (habitId) =>
-        Math.max(0, TWO_MINUTE_MAX_PER_WEEK - get().getTwoMinuteUsage(habitId)),
     }),
     {
       name: 'habit-tracker-storage',
@@ -323,5 +377,3 @@ export const useHabitStore = create(
     }
   )
 );
-
-export { calculateStreak, getWeekStart };

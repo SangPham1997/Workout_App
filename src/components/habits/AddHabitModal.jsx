@@ -6,7 +6,16 @@ import {
 } from '../../data/habitTemplates';
 import { useHabitStore } from '../../stores/useHabitStore';
 
+/**
+ * Wrapper: chỉ mount form khi mở → state tự reset cho lần mở sau,
+ * không cần effect "reset state khi isOpen thay đổi".
+ */
 export default function AddHabitModal({ isOpen, onClose }) {
+  if (!isOpen) return null;
+  return <AddHabitForm onClose={onClose} />;
+}
+
+function AddHabitForm({ onClose }) {
   const habits = useHabitStore((s) => s.habits);
   const addHabit = useHabitStore((s) => s.addHabit);
 
@@ -19,28 +28,14 @@ export default function AddHabitModal({ isOpen, onClose }) {
   const [twoMinuteTask, setTwoMinuteTask] = useState('');
   const [error, setError] = useState('');
 
-  // Reset khi mở
-  useEffect(() => {
-    if (isOpen) {
-      setStep(1);
-      setName('');
-      setIcon('fa-dumbbell');
-      setColor('#10b981');
-      setStackAfter(null);
-      setTwoMinuteMode(false);
-      setTwoMinuteTask('');
-      setError('');
-    }
-  }, [isOpen]);
-
   // ESC để đóng
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape' && isOpen) onClose();
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   const handleUseTemplate = useCallback((template) => {
     setName(template.name);
@@ -88,12 +83,13 @@ export default function AddHabitModal({ isOpen, onClose }) {
     onClose,
   ]);
 
-  if (!isOpen) return null;
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tạo thói quen"
     >
       <div
         className="bg-slate-800 rounded-3xl border border-slate-700/50 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"

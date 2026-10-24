@@ -1,22 +1,25 @@
-import { memo, useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { memo, useState, useCallback, useRef, useEffect } from 'react';
 import { hapticCheckIn, hapticUndo } from '../../utils/habitFeedback';
 
 const HabitCard = memo(function HabitCard({
   habit,
   parentHabitName,
-  checkIns = [],
   onCheckIn,
   onUndoCheckIn,
   onDelete,
   onEdit,
   onArchive,
-  onUseFreeze,
+  onApplyFreeze,
   onTwoMinuteStart,
-  twoMinuteRemaining = 0,
 }) {
   const [animating, setAnimating] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+  const animationTimerRef = useRef(null);
+
+  // Các giá trị dẫn xuất (missedYesterday, canFreeze, twoMinuteRemaining)
+  // được tính 1 lần trong store selector, không tính lại trong mỗi card.
+  const { missedYesterday, canFreeze, twoMinuteRemaining } = habit;
 
   useEffect(() => {
     const h = (e) => {
@@ -28,17 +31,12 @@ const HabitCard = memo(function HabitCard({
     return () => document.removeEventListener('mousedown', h);
   }, [showMenu]);
 
-  // Detect miss hôm qua
-  const missedYesterday = useMemo(() => {
-    if (habit.isCheckedInToday) return false;
-    const yesterday = new Date(Date.now() - 86400000)
-      .toISOString()
-      .slice(0, 10);
-    return !checkIns.includes(yesterday) && habit.streak === 0 && checkIns.length > 0;
-  }, [habit.isCheckedInToday, habit.streak, checkIns]);
-
-  // Có freeze để cứu streak không?
-  const canFreeze = missedYesterday && habit.freezeAvailable > 0;
+  useEffect(
+    () => () => {
+      if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
+    },
+    []
+  );
 
   const handleToggle = useCallback(() => {
     if (habit.isCheckedInToday) {
@@ -48,9 +46,9 @@ const HabitCard = memo(function HabitCard({
       onCheckIn(habit.id);
       hapticCheckIn();
       setAnimating(true);
-      setTimeout(() => setAnimating(false), 700);
+      animationTimerRef.current = setTimeout(() => setAnimating(false), 700);
     }
-  }, [habit, onCheckIn, onUndoCheckIn]);
+  }, [habit.id, habit.isCheckedInToday, onCheckIn, onUndoCheckIn]);
 
   const handleMenuAction = useCallback(
     (action) => {
@@ -65,11 +63,11 @@ const HabitCard = memo(function HabitCard({
         }
       } else if (action === 'freeze') {
         if (window.confirm(`Dùng 1 lượt freeze để cứu chuỗi?`)) {
-          onUseFreeze(habit.id);
+          onApplyFreeze(habit.id);
         }
       }
     },
-    [habit, onDelete, onEdit, onArchive, onUseFreeze]
+    [habit, onDelete, onEdit, onArchive, onApplyFreeze]
   );
 
   return (

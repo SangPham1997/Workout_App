@@ -1,7 +1,7 @@
 /**
  * Chuyển đổi mọi dạng URL YouTube sang dạng embed chuẩn.
  * Hỗ trợ: watch, youtu.be, shorts, live, embed, v/
- * 
+ *
  * @param {string} url - URL YouTube gốc
  * @param {object} options - Tuỳ chọn
  * @returns {string} URL embed hoặc chuỗi rỗng nếu không hợp lệ
@@ -12,7 +12,7 @@ export const getVideoEmbedUrl = (url, options = {}) => {
   // 1. Chặn sớm các URL không thể embed (như trang tìm kiếm) để tránh lỗi iframe
   if (url.includes('/results?') || url.includes('search_query=')) {
     console.warn('⚠️ getVideoEmbedUrl: Không thể nhúng trang tìm kiếm YouTube. Vui lòng cung cấp URL video trực tiếp (ví dụ: youtube.com/watch?v=ID). URL nhận được:', url);
-    return ''; 
+    return '';
   }
 
   const {
@@ -33,17 +33,17 @@ export const getVideoEmbedUrl = (url, options = {}) => {
   try {
     if (url.includes('youtu.be/')) {
       videoId = url.split('youtu.be/')[1]?.split(/[?&#]/)[0];
-    } 
+    }
     else if (url.includes('youtube.com/watch')) {
       const parsed = new URL(url);
       videoId = parsed.searchParams.get('v');
-    } 
+    }
     else if (url.includes('youtube.com/shorts/')) {
       videoId = url.split('shorts/')[1]?.split(/[?&#]/)[0];
-    } 
+    }
     else if (url.includes('youtube.com/live/')) {
       videoId = url.split('live/')[1]?.split(/[?&#]/)[0];
-    } 
+    }
     else if (url.includes('youtube.com/v/')) {
       videoId = url.split('v/')[1]?.split(/[?&#]/)[0];
     }
@@ -67,39 +67,42 @@ export const getVideoEmbedUrl = (url, options = {}) => {
     return '';
   }
 
-  const base = `https://www.youtube.com/embed/${videoId}`;
-  return appendEmbedParams(base, { autoplay, mute, loop, controls });
+  return appendEmbedParams(
+    `https://www.youtube.com/embed/${videoId}`,
+    { autoplay, mute, loop, controls }
+  );
 };
 
 /**
- * Thêm các tham số vào URL embed (autoplay, mute, loop, controls).
+ * Thêm các tham số vào URL embed.
+ * Dùng URL API để không làm hỏng URL đã có sẵn query string (ví dụ `?si=...`).
  */
 const appendEmbedParams = (baseUrl, { autoplay, mute, loop, controls }) => {
-  const params = new URLSearchParams();
+  let embedUrl;
+  try {
+    embedUrl = new URL(baseUrl);
+  } catch {
+    return '';
+  }
+
+  const params = embedUrl.searchParams;
 
   if (autoplay) {
     params.set('autoplay', '1');
     params.set('mute', '1'); // Autoplay bắt buộc phải mute trên trình duyệt hiện đại
   }
-  if (mute && !params.has('mute')) {
-    params.set('mute', '1');
-  }
+  if (mute) params.set('mute', '1');
   if (loop) {
     params.set('loop', '1');
     // Loop yêu cầu phải có playlist = cùng ID video
-    const idMatch = baseUrl.match(/embed\/([^?]+)/);
-    if (idMatch) {
-      params.set('playlist', idMatch[1]);
-    }
+    const id = embedUrl.pathname.split('/').filter(Boolean).pop();
+    if (id) params.set('playlist', id);
   }
-  if (!controls) {
-    params.set('controls', '0');
-  }
+  if (!controls) params.set('controls', '0');
 
   // Các params bổ sung để tăng trải nghiệm người dùng (UX)
-  params.set('rel', '0');             // Không hiện video đề xuất từ kênh khác khi kết thúc
-  params.set('modestbranding', '1');  // Giảm thiểu logo/branding của YouTube
+  params.set('rel', '0'); // Không hiện video đề xuất từ kênh khác khi kết thúc
+  params.set('playsinline', '1'); // Phát inline trên iOS thay vì nhảy fullscreen
 
-  const qs = params.toString();
-  return qs ? `${baseUrl}?${qs}` : baseUrl;
+  return embedUrl.toString();
 };
