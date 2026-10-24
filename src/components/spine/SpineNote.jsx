@@ -1,7 +1,12 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 const SpineNote = memo(function SpineNote({ note = '', onSave, exerciseName }) {
   const [text, setText] = useState(note);
+
+  // Không remount bằng key nữa → đồng bộ lại nội dung khi đổi bài.
+  useEffect(() => {
+    setText(note);
+  }, [exerciseName, note]);
 
   const handleBlur = () => {
     if (text !== note) onSave(text);

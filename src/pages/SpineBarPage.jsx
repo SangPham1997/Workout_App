@@ -171,8 +171,10 @@ export default function SpineBarPage() {
                   </label>
                 )}
 
+                {/* Không remount bằng key ở đây: React 19 đang giữ instance cũ
+                    trong fragment. State video/note được reset bằng useEffect
+                    khi selected.id đổi. */}
                 <SpineDetail
-                  key={selected.id}
                   exercise={selected}
                   isCompleted={completedIds.includes(selected.id)}
                   onToggleComplete={toggleComplete}
@@ -199,7 +201,6 @@ export default function SpineBarPage() {
                 />
 
                 <SpineNote
-                  key={selected.id}
                   note={notes[selected.id] || ''}
                   onSave={handleSaveNote}
                   exerciseName={selected.name}

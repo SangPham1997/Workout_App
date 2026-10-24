@@ -17,8 +17,16 @@ const SpineDetail = memo(function SpineDetail({
   isCompleted,
   onToggleComplete,
 }) {
-  const [videoFailed, setVideoFailed] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
+  // Gắn trạng thái video với đúng exercise.id: đổi bài là tự coi như chưa tải,
+  // không cần remount component bằng key (tránh lỗi stack của React 19).
+  const [videoState, setVideoState] = useState({
+    id: null,
+    loaded: false,
+    failed: false,
+  });
+  const isCurrentVideo = videoState.id === exercise.id;
+  const videoLoaded = isCurrentVideo && videoState.loaded;
+  const videoFailed = isCurrentVideo && videoState.failed;
 
   const embedUrl = useMemo(
     () =>
@@ -73,8 +81,12 @@ const SpineDetail = memo(function SpineDetail({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
-            onLoad={() => setVideoLoaded(true)}
-            onError={() => setVideoFailed(true)}
+            onLoad={() =>
+              setVideoState({ id: exercise.id, loaded: true, failed: false })
+            }
+            onError={() =>
+              setVideoState({ id: exercise.id, loaded: false, failed: true })
+            }
           />
           <a
             href={exercise.videoUrl}
