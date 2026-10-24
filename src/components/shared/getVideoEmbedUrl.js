@@ -20,11 +20,12 @@ export const getVideoEmbedUrl = (url, options = {}) => {
     mute = false,
     loop = false,
     controls = true,
+    start = null,
   } = options;
 
   // 2. Nếu đã là URL embed → giữ nguyên, chỉ thêm params
   if (url.includes('youtube.com/embed/')) {
-    return appendEmbedParams(url, { autoplay, mute, loop, controls });
+    return appendEmbedParams(url, { autoplay, mute, loop, controls, start });
   }
 
   let videoId = null;
@@ -69,7 +70,7 @@ export const getVideoEmbedUrl = (url, options = {}) => {
 
   return appendEmbedParams(
     `https://www.youtube.com/embed/${videoId}`,
-    { autoplay, mute, loop, controls }
+    { autoplay, mute, loop, controls, start }
   );
 };
 
@@ -77,7 +78,10 @@ export const getVideoEmbedUrl = (url, options = {}) => {
  * Thêm các tham số vào URL embed.
  * Dùng URL API để không làm hỏng URL đã có sẵn query string (ví dụ `?si=...`).
  */
-const appendEmbedParams = (baseUrl, { autoplay, mute, loop, controls }) => {
+const appendEmbedParams = (
+  baseUrl,
+  { autoplay, mute, loop, controls, start }
+) => {
   let embedUrl;
   try {
     embedUrl = new URL(baseUrl);
@@ -99,6 +103,9 @@ const appendEmbedParams = (baseUrl, { autoplay, mute, loop, controls }) => {
     if (id) params.set('playlist', id);
   }
   if (!controls) params.set('controls', '0');
+  if (Number.isFinite(start) && start > 0) {
+    params.set('start', String(Math.floor(start)));
+  }
 
   // Các params bổ sung để tăng trải nghiệm người dùng (UX)
   params.set('rel', '0'); // Không hiện video đề xuất từ kênh khác khi kết thúc

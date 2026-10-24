@@ -11,24 +11,19 @@ const ICONS = {
   'Phục hồi': 'fa-spa',
 };
 
-const WEEK_LABELS = {
-  1: 'Nền tảng',
-  2: 'Kỹ thuật',
-  3: 'Thể lực',
-  4: 'Nâng cao',
-  5: 'Tổng hợp',
-};
+const WEEK_LABELS = {};
 
 const KarateSessionList = memo(function KarateSessionList({
   sessions,
-  currentIndex,
+  currentId,
   onSelect,
   completedIds = [],
   currentWeek,
   onSelectWeek,
+  weekLabels = WEEK_LABELS,
+  allSessions,
 }) {
-  const selectedSession = sessions[currentIndex];
-  const activeWeek = currentWeek || selectedSession?.week || 1;
+  const activeWeek = currentWeek || 1;
 
   // Ref cho vùng scroll của WeekTabs
   const weekTabsRef = useRef(null);
@@ -43,11 +38,6 @@ const KarateSessionList = memo(function KarateSessionList({
   };
 
   const completedSet = useMemo(() => new Set(completedIds), [completedIds]);
-
-  const indexById = useMemo(
-    () => new Map(sessions.map((s, index) => [s.id, index])),
-    [sessions]
-  );
 
   // Danh sách các tuần có buổi tập
   const weeks = useMemo(
@@ -67,13 +57,21 @@ const KarateSessionList = memo(function KarateSessionList({
     return stats;
   }, [sessions, completedSet]);
 
+  const progressSessions = allSessions ?? sessions;
+
   const totalCompleted = useMemo(
-    () => sessions.reduce((sum, s) => sum + (completedSet.has(s.id) ? 1 : 0), 0),
-    [sessions, completedSet]
+    () =>
+      progressSessions.reduce(
+        (sum, s) => sum + (completedSet.has(s.id) ? 1 : 0),
+        0
+      ),
+    [progressSessions, completedSet]
   );
 
   const totalPercent =
-    sessions.length > 0 ? (totalCompleted / sessions.length) * 100 : 0;
+    progressSessions.length > 0
+      ? (totalCompleted / progressSessions.length) * 100
+      : 0;
 
   // Lọc buổi tập theo tuần đang chọn
   const filtered = useMemo(
@@ -95,7 +93,7 @@ const KarateSessionList = memo(function KarateSessionList({
             <span className="text-sm font-bold text-white">Tiến độ lộ trình</span>
           </div>
           <span className="text-sm font-mono text-slate-300">
-            {totalCompleted}/{sessions.length} buổi
+            {totalCompleted}/{progressSessions.length} buổi
           </span>
         </div>
         <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -163,7 +161,7 @@ const KarateSessionList = memo(function KarateSessionList({
                     isActive ? 'text-rose-300' : 'text-slate-500'
                   }`}
                 >
-                  {WEEK_LABELS[w] || ''}
+                  {weekLabels[w] || ''}
                 </span>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span
@@ -195,7 +193,7 @@ const KarateSessionList = memo(function KarateSessionList({
         <div className="flex items-center justify-between px-2">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <i className="fa-solid fa-list-check text-rose-400"></i>
-            Tuần {activeWeek} — {WEEK_LABELS[activeWeek] || ''}
+            Tuần {activeWeek} — {weekLabels[activeWeek] || ''}
           </h3>
           <span className="text-xs text-slate-500">
             {activeStats.done}/{activeStats.total} buổi
@@ -216,8 +214,7 @@ const KarateSessionList = memo(function KarateSessionList({
       {/* ============ DANH SÁCH BUỔI TẬP ============ */}
       <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-2 max-h-[520px] scrollbar-rose scroll-fade scroll-smooth-custom">
         {filtered.map((s, weekIdx) => {
-          const idx = indexById.get(s.id) ?? 0;
-          const isActive = currentIndex === idx;
+          const isActive = currentId === s.id;
           const isDone = completedSet.has(s.id);
           const icon = ICONS[s.category] || 'fa-hand-fist';
 
@@ -225,7 +222,7 @@ const KarateSessionList = memo(function KarateSessionList({
             <button
               key={s.id}
               type="button"
-              onClick={() => onSelect(idx)}
+              onClick={() => onSelect(s.id)}
               className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 group ${
                 isActive
                   ? 'bg-rose-900/20 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.1)]'

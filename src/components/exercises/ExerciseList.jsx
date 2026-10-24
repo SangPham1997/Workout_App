@@ -9,7 +9,7 @@ import { weekLabels } from '../../data/exercises';
 */
 export default function ExerciseList({
   exercises,
-  currentIndex,
+  currentId,
   onSelect,
   completedWeeks = [],
   onToggleWeekComplete,
@@ -136,7 +136,7 @@ export default function ExerciseList({
                     <ExerciseItem
                       key={ex.id}
                       exercise={ex}
-                      currentIndex={currentIndex}
+                      selectedId={currentId}
                       onSelect={onSelect}
                       idx={indexById.get(ex.id)}
                     />

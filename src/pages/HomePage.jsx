@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useExerciseStore } from '../stores/useExerciseStore';
-import { useTimerStore } from '../hooks/useTimerStore';
+import { useTimerStore } from '../stores/useTimerStore';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import TimerControl from '../components/timer/TimerControl';
@@ -20,7 +20,7 @@ function HomePage() {
   // ===== EXERCISE STORE =====
   const {
     exercises,
-    selectedIndex,
+    selectedId,
     selectedExercise,
     selectExercise,
     completedWeeks,
@@ -28,7 +28,7 @@ function HomePage() {
   } = useExerciseStore(
     useShallow((state) => ({
       exercises: state.exercises,
-      selectedIndex: state.selectedIndex,
+      selectedId: state.selectedId,
       selectedExercise: state.getSelectedExercise(),
       selectExercise: state.selectExercise,
       completedWeeks: state.completedWeeks,
@@ -51,6 +51,7 @@ function HomePage() {
     pauseTimer,
     fullReset,
     resetAndStart,
+    loadSession,
     toggleSound,
     soundEnabled,
   } = useTimerStore(
@@ -67,6 +68,7 @@ function HomePage() {
       pauseTimer: state.pauseTimer,
       fullReset: state.fullReset,
       resetAndStart: state.resetAndStart,
+      loadSession: state.loadSession,
       toggleSound: state.toggleSound,
       soundEnabled: state.soundEnabled,
     }))
@@ -81,14 +83,18 @@ function HomePage() {
     [selectedExercise]
   );
 
+  // ===== LOAD SESSION CHO TIMER =====
+  // Timer không tự dò route nữa; mỗi lần đổi bài, nạp session tường minh.
+  useEffect(() => {
+    if (selectedExercise) loadSession(selectedExercise);
+  }, [selectedExercise, loadSession]);
+
   // ===== HANDLERS =====
   const handleSelectExercise = useCallback(
-    (index) => {
-      selectExercise(index);
-      // fullReset đọc session MỚI từ store (vì selectExercise đã sync)
-      fullReset();
+    (id) => {
+      selectExercise(id);
     },
-    [selectExercise, fullReset]
+    [selectExercise]
   );
 
   // ===== GUARD =====
@@ -165,6 +171,7 @@ function HomePage() {
 
           {/* TIMER */}
           <TimerControl
+            accent="emerald"
             phase={phase}
             currentSet={currentSet}
             totalSets={totalSets}
@@ -191,7 +198,7 @@ function HomePage() {
         <section className="lg:col-span-5" aria-label="Danh sách bài tập">
           <ExerciseList
             exercises={exercises}
-            currentIndex={selectedIndex}
+            currentId={selectedId}
             onSelect={handleSelectExercise}
             completedWeeks={completedWeeks}
             onToggleWeekComplete={toggleWeekComplete}

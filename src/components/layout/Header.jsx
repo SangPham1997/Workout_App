@@ -18,6 +18,12 @@ const NAV_ITEMS = [
     color: 'rose',
   },
   {
+    to: '/xa',
+    icon: 'fa-arrows-up-down',
+    label: 'Xà',
+    color: 'sky',
+  },
+  {
     to: '/habits',
     icon: 'fa-check-double',
     label: 'Thói quen',
@@ -33,6 +39,10 @@ const COLOR_CLASSES = {
   rose: {
     active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)]',
     hover: 'text-slate-400 hover:text-rose-400',
+  },
+  sky: {
+    active: 'bg-sky-500 text-slate-900 shadow-[0_0_12px_rgba(14,165,233,0.35)]',
+    hover: 'text-slate-400 hover:text-sky-400',
   },
   amber: {
     active: 'bg-amber-500 text-slate-900 shadow-[0_0_12px_rgba(245,158,11,0.35)]',

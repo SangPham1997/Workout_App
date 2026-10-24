@@ -9,15 +9,15 @@ import { memo, useCallback } from 'react';
 */
 const ExerciseItem = memo(function ExerciseItem({
   exercise,
-  currentIndex,
+  selectedId,
   onSelect,
   idx,
 }) {
-  const isActive = currentIndex === idx;
+  const isActive = selectedId === exercise.id;
 
   const handleClick = useCallback(() => {
-    onSelect(idx);
-  }, [onSelect, idx]);
+    onSelect(exercise.id);
+  }, [onSelect, exercise.id]);
 
   // Build meta label từ schema mới
   const getMetaLabel = (exercise) => {

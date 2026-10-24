@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 // Tách bundle theo route: mỗi trang chỉ tải khi được mở.
 const HomePage = lazy(() => import('./pages/HomePage'));
 const KaratePage = lazy(() => import('./pages/KaratePage'));
+const SpineBarPage = lazy(() => import('./pages/SpineBarPage'));
 const HabitsPage = lazy(() => import('./pages/HabitsPage'));
 
 function PageFallback() {
@@ -25,6 +26,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/karate" element={<KaratePage />} />
+          <Route path="/xa" element={<SpineBarPage />} />
           <Route path="/habits" element={<HabitsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

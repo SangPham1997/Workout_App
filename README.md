@@ -1,16 +1,63 @@
-# React + Vite
+# Home Workout Pro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ứng dụng tập luyện tại nhà gồm 4 mục: bài tập 4 tuần, Karate, Xà & Cột sống và thói quen.  
+Xây dựng bằng React 19 + Vite + Tailwind CSS + Zustand, dữ liệu lưu trong `localStorage`.
 
-Currently, two official plugins are available:
+## Tính năng
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Exercises (`/`)** — 20 bài, chia 4 tuần, timer theo hiệp/thời gian, video hướng dẫn, đánh dấu tuần hoàn thành.
+- **Karate (`/karate`)** — 12 buổi, 3 lộ trình Kihon / Kata / Kumite, timeline tua video, thư viện kỹ thuật, ghi chú và tiến độ từng track.
+- **Xà & Cột sống (`/xa`)** — 14 bài nhẹ cho dân văn phòng, 3 routine 8–12 phút, filter cấp/dụng cụ, safety notice, timer, ghi chú.
+- **Thói quen (`/habits`)** — habit tracker, streak, heatmap, backup/restore.
 
-## React Compiler
+## Chạy local
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Mở URL Vite in ra (mặc định `http://localhost:5173`).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Build & kiểm tra
+
+```bash
+npm run lint
+npm run build
+npm run preview
+```
+
+## Routes
+
+| Route | Nội dung |
+|---|---|
+| `/` | Home Workout 4 tuần |
+| `/karate` | Karate 3 track |
+| `/xa` | Xà & Cột sống |
+| `/habits` | Thói quen |
+
+## Cấu trúc chính
+
+```text
+src/
+├── data/
+│   ├── programs/      # homeWorkout, spineBar, registry
+│   ├── karate/        # tracks, sessions, techniques, blocks
+│   ├── exercises.js   # dữ liệu 20 bài nền
+│   └── karateSessions.js
+├── stores/            # zustand + persist
+├── components/
+│   ├── exercises/
+│   ├── karate/
+│   ├── spine/
+│   ├── timer/
+│   └── layout/
+└── pages/
+```
+
+Kế hoạch chi tiết và trạng thái triển khai: [docs/ke-hoach-phat-trien.md](docs/ke-hoach-phat-trien.md).
+
+## Ghi chú an toàn
+
+Mục Xà & Cột sống là vận động nhẹ để thư giãn, không thay thế chẩn đoán hoặc điều trị.  
+Người có tiền sử chấn thương vai/cổ, thoát vị đĩa đệm, đang mang thai hoặc huyết áp không ổn định nên hỏi bác sĩ trước khi tập.

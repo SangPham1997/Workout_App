@@ -1,5 +1,35 @@
 import { memo } from 'react';
 
+const ACCENTS = {
+  emerald: {
+    button: 'bg-emerald-500 hover:bg-emerald-400 text-slate-900',
+    badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    bar: 'bg-emerald-500',
+    shadow: 'shadow-[0_0_20px_rgba(16,185,129,0.3)]',
+    dotDone: 'bg-emerald-500',
+    dotActive: 'bg-emerald-400 ring-2 ring-emerald-400/40',
+    text: 'text-emerald-400',
+  },
+  sky: {
+    button: 'bg-sky-500 hover:bg-sky-400 text-slate-900',
+    badge: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+    bar: 'bg-sky-500',
+    shadow: 'shadow-[0_0_20px_rgba(14,165,233,0.3)]',
+    dotDone: 'bg-sky-500',
+    dotActive: 'bg-sky-400 ring-2 ring-sky-400/40',
+    text: 'text-sky-400',
+  },
+  rose: {
+    button: 'bg-rose-500 hover:bg-rose-400 text-white',
+    badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+    bar: 'bg-rose-500',
+    shadow: 'shadow-[0_0_20px_rgba(244,63,94,0.3)]',
+    dotDone: 'bg-rose-500',
+    dotActive: 'bg-rose-400 ring-2 ring-rose-400/40',
+    text: 'text-rose-400',
+  },
+};
+
 const PHASE_STYLES = {
   idle: {
     label: 'Sẵn sàng',
@@ -11,8 +41,6 @@ const PHASE_STYLES = {
   work: {
     label: 'Đang tập',
     icon: 'fa-fire',
-    badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-    barClass: 'bg-emerald-500',
     timeClass: 'text-white',
   },
   rest: {
@@ -42,6 +70,7 @@ function TimerControlInner({
   reps = null,
   isRunning,
   isCompleted,
+  accent = 'emerald',
   onStart,
   onPause,
   onReset,
@@ -49,6 +78,9 @@ function TimerControlInner({
   soundEnabled,
   onResetAndStart,
 }) {
+  const accentTheme = ACCENTS[accent] ?? ACCENTS.emerald;
+  const meta = PHASE_STYLES[phase] ?? PHASE_STYLES.idle;
+
   // Phase hiện tại dùng duration nào
   const phaseDuration = phase === 'rest' ? restDuration : workDuration;
   const percent =
@@ -57,7 +89,9 @@ function TimerControlInner({
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
   const secs = String(timeLeft % 60).padStart(2, '0');
 
-  const meta = PHASE_STYLES[phase] ?? PHASE_STYLES.idle;
+  const badgeClass =
+    phase === 'work' ? accentTheme.badge : meta.badgeClass;
+  const barClass = phase === 'work' ? accentTheme.bar : meta.barClass;
 
   // ===== BUTTON LOGIC =====
   let buttonLabel, buttonIcon, buttonClass, onClick;
@@ -74,12 +108,12 @@ function TimerControlInner({
   } else if (phase !== 'idle' && timeLeft > 0 && timeLeft < phaseDuration) {
     buttonLabel = 'Tiếp tục';
     buttonIcon = 'fa-play';
-    buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
+    buttonClass = accentTheme.button;
     onClick = onStart;
   } else {
     buttonLabel = 'Bắt đầu';
     buttonIcon = 'fa-play';
-    buttonClass = 'bg-emerald-500 hover:bg-emerald-400 text-slate-900';
+    buttonClass = accentTheme.button;
     onClick = onStart;
   }
 
@@ -105,13 +139,13 @@ function TimerControlInner({
       aria-live="polite"
       aria-label={`${meta.label}, ${setLabel}, còn ${mins} phút ${secs} giây`}
     >
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
         {/* ===== LEFT: TIME + PROGRESS ===== */}
         <div className="flex flex-col gap-3 w-full md:w-auto">
           {/* Badge + set label */}
           <div className="flex items-center gap-3">
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${meta.badgeClass}`}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${badgeClass}`}
             >
               <i className={`fa-solid ${meta.icon} text-[10px]`} aria-hidden="true" />
               {meta.label}
@@ -129,7 +163,10 @@ function TimerControlInner({
               </span>
               {showRepsHint && (
                 <span className="text-[11px] text-slate-400 mt-0.5">
-                  Mục tiêu: <span className="text-emerald-400 font-semibold">{reps} lần</span>
+                  Mục tiêu:{' '}
+                  <span className={`${accentTheme.text} font-semibold`}>
+                    {reps} lần
+                  </span>
                 </span>
               )}
             </div>
@@ -141,17 +178,16 @@ function TimerControlInner({
                 aria-label={`Tiến độ hiệp: ${currentSet}/${totalSets}`}
               >
                 {setDots.map((s) => {
-                  const isDone =
-                    phase === 'completed' || s < currentSet;
+                  const isDone = phase === 'completed' || s < currentSet;
                   const isActive = !isDone && s === currentSet;
                   return (
                     <span
                       key={s}
                       className={`w-2 h-2 rounded-full transition-all ${
                         isDone
-                          ? 'bg-emerald-500'
+                          ? accentTheme.dotDone
                           : isActive
-                          ? 'bg-emerald-400 ring-2 ring-emerald-400/40 scale-125'
+                          ? accentTheme.dotActive
                           : 'bg-slate-600'
                       }`}
                     />
@@ -171,7 +207,7 @@ function TimerControlInner({
             aria-label="Tiến độ phase hiện tại"
           >
             <div
-              className={`h-full transition-all duration-1000 ${meta.barClass}`}
+              className={`h-full transition-all duration-1000 ${barClass}`}
               style={{ width: `${percent}%` }}
               aria-hidden="true"
             />
@@ -179,10 +215,10 @@ function TimerControlInner({
         </div>
 
         {/* ===== RIGHT: BUTTONS ===== */}
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-3 w-full xl:w-auto">
           <button
             onClick={onClick}
-            className={`flex-1 md:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] ${buttonClass}`}
+            className={`flex-1 xl:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 ${accentTheme.shadow} ${buttonClass}`}
           >
             <i className={`fa-solid ${buttonIcon} text-sm`} aria-hidden="true" />
             <span>{buttonLabel}</span>
@@ -197,7 +233,8 @@ function TimerControlInner({
           <button
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
             onClick={onToggleSound}
-            aria-label="Toggle sound">
+            aria-label="Toggle sound"
+          >
             {soundEnabled ? '🔊' : '🔇'}
           </button>
         </div>
@@ -207,6 +244,4 @@ function TimerControlInner({
 }
 
 // Mọi prop đều là primitive/callback ổn định → memo so sánh nông là đủ.
-// (Bản cũ tự viết comparator nhưng so sánh `prev.total` — prop không tồn tại —
-// và bỏ sót phase/currentSet/totalSets nên có lúc UI không cập nhật.)
 export default memo(TimerControlInner);
