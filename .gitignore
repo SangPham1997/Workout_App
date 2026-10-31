@@ -1,3 +1,29 @@
+# Dependencies (quy tắc bảo vệ branch: không bao giờ commit node_modules)
 node_modules/
+**/node_modules/
+.pnpm-store/
+.yarn/cache/
+
+# Build artifacts tự sinh
 dist/
 build/
+.next/
+coverage/
+.sanity/
+*.tsbuildinfo
+
+# Cache dev tools
+.vite/
+node_modules/.vite/
+
+# Logs & hệ điều hành
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Môi trường & token (tuyệt đối không commit)
+.env
+.env.local
+.env.*.local
+sanity-studio/.env.local
