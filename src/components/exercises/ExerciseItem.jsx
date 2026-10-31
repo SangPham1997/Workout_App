@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { mapSanityToLegacyExercise } from '../utils/sanityExerciseMapper';
+import { mapSanityToLegacyExercise } from '../../utils/sanityExerciseMapper';
 
 /*
   ExerciseItem — hiển thị 1 bài tập trong danh sách
