@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:studio\"",
+    "dev:dev": "concurrently \"npm run dev:web\" \"npm run dev:studio\"",
     "dev:web": "npm run dev --workspace=src",
     "dev:studio": "npm run dev --workspace=sanity-studio",
     "build": "npm run build --workspaces",
