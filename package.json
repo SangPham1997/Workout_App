@@ -1,33 +1,29 @@
 {
-  "name": "homecycle-react",
+  "name": "homecycle-monorepo",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "src",
+    "sanity-studio"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.3.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.4",
-    "zustand": "^5.0.15"
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:studio\"",
+    "dev:web": "npm run dev --workspace=src",
+    "dev:studio": "npm run dev --workspace=sanity-studio",
+    "build": "npm run build --workspaces",
+    "build:web": "npm run build --workspace=src",
+    "build:studio": "npm run build --workspace=sanity-studio",
+    "deploy:studio": "npm run deploy --workspace=sanity-studio",
+    "typegen": "npm run typegen --workspace=sanity-studio",
+    "migrate": "npm run migrate --workspace=sanity-studio",
+    "lint": "npm run lint --workspaces"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
-    "autoprefixer": "^10.6.1",
-    "eslint": "^10.9.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.4",
-    "globals": "^17.11.0",
-    "postcss": "^8.5.28",
-    "tailwindcss": "^3.4.19",
-    "vite": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

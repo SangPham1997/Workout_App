@@ -1,36 +1,39 @@
-import { memo, useCallback } from 'react';
+import { useMemo } from 'react';
+import { mapSanityToLegacyExercise } from '../utils/sanityExerciseMapper';
 
 /*
   ExerciseItem — hiển thị 1 bài tập trong danh sách
-  
-  Meta format theo schema mới:
-  - mode='reps' → "2×12"     (2 hiệp × 12 lần)
-  - mode='time' → "2×30s"    (2 hiệp × 30 giây)
+  Hỗ trợ cả Legacy format (local data) và Sanity format (mới)
 */
-const ExerciseItem = memo(function ExerciseItem({
-  exercise,
-  selectedId,
-  onSelect,
-  idx,
-}) {
+const ExerciseItem = ({ exercise, selectedId, onSelect, idx }) => {
   const isActive = selectedId === exercise.id;
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     onSelect(exercise.id);
-  }, [onSelect, exercise.id]);
-
-  // Build meta label từ schema mới
-  const getMetaLabel = (exercise) => {
-  const sets = exercise.sets ?? 1;
-
-    if (exercise.mode === 'reps' && exercise.reps != null) {
-      return `${sets} hiệp · ${exercise.reps} lần`;
-    }
-
-    return `${sets} hiệp · ${exercise.duration}s`;
   };
 
-  const metaLabel = getMetaLabel(exercise);
+  // Chuẩn hóa exercise data (hỗ trợ cả 2 format)
+  const normalized = useMemo(() => {
+    // Nếu đã là legacy format (có mode, duration, sets)
+    if ('mode' in exercise && 'duration' in exercise) {
+      return exercise;
+    }
+    // Nếu là Sanity format (có exerciseType, defaultSets, defaultReps)
+    return mapSanityToLegacyExercise(exercise);
+  }, [exercise]);
+
+  // Build meta label từ schema
+  const getMetaLabel = (ex) => {
+    const sets = ex.sets ?? 1;
+
+    if (ex.mode === 'reps' && ex.reps != null) {
+      return `${sets} hiệp · ${ex.reps} lần`;
+    }
+
+    return `${sets} hiệp · ${ex.duration}s`;
+  };
+
+  const metaLabel = getMetaLabel(normalized);
 
   return (
     <button
@@ -61,7 +64,7 @@ const ExerciseItem = memo(function ExerciseItem({
               isActive ? 'text-white' : 'text-slate-300'
             }`}
           >
-            {exercise.name}
+            {normalized.name}
           </span>
           {isActive && (
             <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider animate-pulse whitespace-nowrap">
@@ -69,9 +72,9 @@ const ExerciseItem = memo(function ExerciseItem({
             </span>
           )}
         </div>
-        {exercise.subName && (
+        {normalized.subName && (
           <div className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5 truncate">
-            {exercise.subName}
+            {normalized.subName}
           </div>
         )}
       </div>
@@ -86,6 +89,6 @@ const ExerciseItem = memo(function ExerciseItem({
       </span>
     </button>
   );
-});
+};
 
 export default ExerciseItem;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useExerciseStore } from '../stores/useExerciseStore';
 import { useTimerStore } from '../stores/useTimerStore';
+import { useHomeWorkout } from '../hooks/useHomeWorkout';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import TimerControl from '../components/timer/TimerControl';
@@ -17,27 +17,22 @@ const EMBED_OPTIONS = {
 };
 
 function HomePage() {
-  // ===== EXERCISE STORE =====
+  // ===== HOOK KẾT HỢP SANITY + ZUSTAND =====
   const {
+    program,
+    weeks,
+    currentWeek,
     exercises,
-    selectedId,
     selectedExercise,
+    selectedId,
     selectExercise,
     completedWeeks,
     toggleWeekComplete,
-  } = useExerciseStore(
-    useShallow((state) => ({
-      exercises: state.exercises,
-      selectedId: state.selectedId,
-      selectedExercise: state.getSelectedExercise(),
-      selectExercise: state.selectExercise,
-      completedWeeks: state.completedWeeks,
-      toggleWeekComplete: state.toggleWeekComplete,
-    }))
-  );
+    isLoading,
+    error,
+  } = useHomeWorkout();
 
   // ===== TIMER STORE =====
-  // Không cần `configure` — store tự đọc session qua getActiveSession()
   const {
     phase,
     currentSet,
@@ -84,7 +79,6 @@ function HomePage() {
   );
 
   // ===== LOAD SESSION CHO TIMER =====
-  // Timer không tự dò route nữa; mỗi lần đổi bài, nạp session tường minh.
   useEffect(() => {
     if (selectedExercise) loadSession(selectedExercise);
   }, [selectedExercise, loadSession]);
@@ -97,6 +91,41 @@ function HomePage() {
     [selectExercise]
   );
 
+  // ===== LOADING / ERROR STATES =====
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
+        <Header />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-500 border-t-transparent mx-auto mb-4" />
+            <p className="text-slate-400">Đang tải chương trình tập luyện...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
+        <Header />
+        <div className="flex-grow flex items-center justify-center p-4">
+          <div className="text-center text-rose-400">
+            <i className="fa-solid fa-triangle-exclamation text-4xl mb-2" />
+            <p className="mb-2">Không thể tải dữ liệu từ máy chủ</p>
+            <p className="text-sm text-slate-500">{error.message}</p>
+            <button onClick={refetch} className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600">
+              Thử lại
+            </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   // ===== GUARD =====
   if (!selectedExercise) {
     return (
@@ -104,7 +133,7 @@ function HomePage() {
         <Header />
         <div className="flex-grow flex items-center justify-center">
           <div className="text-slate-400 text-sm" role="status" aria-live="polite">
-            Đang tải bài tập...
+            Không có bài tập nào trong chương trình
           </div>
         </div>
         <Footer />
@@ -164,7 +193,7 @@ function HomePage() {
               </h2>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/50 border border-slate-700">
                 <i className="fa-solid fa-crosshairs text-emerald-400 text-xs" aria-hidden="true" />
-                <p className="text-xs md:text-sm font-medium">{selectedExercise.target}</p>
+                <p className="text-xs md:text-sm font-medium">{selectedExercise.target || selectedExercise.muscleGroups?.join(', ') || 'Toàn thân'}</p>
               </div>
             </div>
           </div>
@@ -178,8 +207,8 @@ function HomePage() {
             timeLeft={timeLeft}
             workDuration={workDuration}
             restDuration={restDuration}
-            mode={selectedExercise.mode}
-            reps={selectedExercise.reps}
+            mode={selectedExercise.exerciseType === 'hold' ? 'time' : selectedExercise.mode}
+            reps={selectedExercise.exerciseType === 'reps' ? selectedExercise.defaultReps : undefined}
             isRunning={isRunning}
             isCompleted={isCompleted}
             onStart={startTimer}
@@ -191,7 +220,7 @@ function HomePage() {
           />
 
           {/* GUIDE */}
-          <TechniqueGuide guide={selectedExercise.guide} />
+          <TechniqueGuide guide={selectedExercise.instructions} />
         </section>
 
         {/* ===== CỘT PHẢI ===== */}
@@ -202,6 +231,7 @@ function HomePage() {
             onSelect={handleSelectExercise}
             completedWeeks={completedWeeks}
             onToggleWeekComplete={toggleWeekComplete}
+            currentWeekNumber={currentWeek?.weekNumber}
           />
         </section>
       </main>
