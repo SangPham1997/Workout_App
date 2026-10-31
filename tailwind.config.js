@@ -1,10 +1,18 @@
+import { fileURLToPath } from 'node:url'
+
+// ROOT luôn là thư mục chứa file config này (repo gốc), bất kể lệnh dev/build
+// được chạy từ đâu (repo gốc hay workspace src/). Nếu dùng đường dẫn tương đối
+// './src/...', khi cwd = src/ thì Tailwind sẽ tìm 'src/src/...' -> content rỗng
+// -> không sinh ra class nào (lỗi "không có css tailwind").
+const ROOT = fileURLToPath(new URL('.', import.meta.url))
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    './index.html',
-    './src/**/*.{js,ts,jsx,tsx}',
+    `${ROOT}index.html`,
+    `${ROOT}src/**/*.{js,ts,jsx,tsx}`,
     // tránh Tailwind quét trong sanity-studio/ (bị vite.config.ts import qua symlink)
-    '!./sanity-studio/**/*',
+    `!${ROOT}sanity-studio/**/*`,
   ],
   theme: {
     extend: {

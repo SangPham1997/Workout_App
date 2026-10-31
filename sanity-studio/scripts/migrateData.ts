@@ -1,12 +1,43 @@
-// sanity-studio/scripts/migrateData.ts
-// Chạy: npx tsx scripts/migrateData.ts
+// Migration Script: Push dữ liệu từ src/data/* lên Sanity
+// Chạy: npm run migrate  (hoặc: cd sanity-studio && npx tsx scripts/migrateData.ts)
+// Cần SANITY_API_TOKEN + SANITY_STUDIO_PROJECT_ID + SANITY_STUDIO_DATASET
+// đặt trong gốc repo `.env` hoặc `sanity-studio/.env.local`.
 
-import { sanityWriteClient } from './sanity.script'
-import { exercises } from '../../src/data/exercises'
-import { homeWorkoutProgram } from '../../src/data/programs/homeWorkout'
-import { karateSessions, KARATE_TRACKS } from '../../src/data/karate'
-import { spineBarProgram } from '../../src/data/programs/spineBar'
-// import { habitTemplates } from '../../src/data/habitTemplates' // chưa dùng, bỏ để tránh warning
+import { loadScriptEnv } from './loadEnv'
+
+// PHẢI load env TRƯỚC khi import sanity.client (client đọc process.env lúc khởi tạo)
+loadScriptEnv()
+
+const PROJECT_ID = process.env.SANITY_STUDIO_PROJECT_ID || process.env.VITE_SANITY_PROJECT_ID
+const DATASET = process.env.SANITY_STUDIO_DATASET || process.env.VITE_SANITY_DATASET || 'production'
+const TOKEN = process.env.SANITY_API_TOKEN
+
+if (!PROJECT_ID || !TOKEN) {
+  console.error(
+    '❌ Thiếu cấu hình. Hãy thêm vào file ".env" (gốc repo) hoặc "sanity-studio/.env.local":\n' +
+      '   SANITY_STUDIO_PROJECT_ID=<project-id>\n' +
+      '   SANITY_STUDIO_DATASET=production\n' +
+      '   SANITY_API_TOKEN=<token Editor>'
+  )
+  process.exit(1)
+}
+
+// Import động SAU khi env đã sẵn sàng
+const { createClient } = await import('@sanity/client')
+const sanityWriteClient = createClient({
+  projectId: PROJECT_ID,
+  dataset: DATASET,
+  apiVersion: '2024-01-01',
+  useCdn: false,
+  token: TOKEN,
+})
+
+// Đường dẫn đúng: script nằm ở <repo>/sanity-studio/scripts/ → src là ../<../../src>
+const { exercises } = await import('../../src/data/exercises.js')
+const { homeWorkoutProgram } = await import('../../src/data/programs/homeWorkout.js')
+const { karateSessions, KARATE_TRACKS } = await import('../../src/data/karate/index.js')
+const { spineBarProgram } = await import('../../src/data/programs/spineBar.js')
+const { habitTemplates } = await import('../../src/data/habitTemplates.js')
 
 // ===== Helpers =====
 
