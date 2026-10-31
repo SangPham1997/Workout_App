@@ -1,10 +1,20 @@
-import { defineConfig } from 'sanity'
-import { structureTool } from 'sanity/structure'
-import { visionTool } from '@sanity/vision'
-import { schemaTypes } from './schemaTypes'
+import {defineConfig} from 'sanity'
+import {structureTool} from 'sanity/structure'
+import {visionTool} from '@sanity/vision'
+import {schemaTypes} from './schemaTypes'
+// Nguồn cấu hình API duy nhất: sanity.cli.ts (đọc SANITY_STUDIO_PROJECT_ID từ .env.local)
+import cliConfig from './sanity.cli'
 
-const projectId = process.env.SANITY_STUDIO_PROJECT_ID || 'your-project-id'
-const dataset = process.env.SANITY_STUDIO_DATASET || 'production'
+const projectId = process.env.SANITY_STUDIO_PROJECT_ID || cliConfig.api?.projectId || 'your-project-id'
+const dataset = process.env.SANITY_STUDIO_DATASET || cliConfig.api?.dataset || 'production'
+
+if (projectId === 'your-project-id') {
+  // Cảnh báo ngay ở console khi dev để khỏi nhầm với lỗi CORS thật
+  console.warn(
+    '[HomeCycle Studio] Chưa cấu hình SANITY_STUDIO_PROJECT_ID trong sanity-studio/.env.local — ' +
+      'Studio sẽ không login được và trình duyệt báo CORS lỗi.',
+  )
+}
 
 export default defineConfig({
   name: 'homecycle',
