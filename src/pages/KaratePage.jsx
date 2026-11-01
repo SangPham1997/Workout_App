@@ -4,6 +4,8 @@ import { useKarateStore } from '../stores/useKarateStore';
 import { KARATE_TRACKS } from '../data/karate';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { ErrorState } from '../components/shared/ErrorState';
 import KaratePathPicker from '../components/karate/KaratePathPicker';
 import KarateSessionList from '../components/karate/KarateSessionList';
 import KarateDetail from '../components/karate/KarateDetail';
@@ -16,6 +18,16 @@ const LEVEL_OPTIONS = [
 ];
 
 export default function KaratePage() {
+
+  // ===== Sanity loading state =====
+  const loading = useKarateStore((s) => s.loading);
+  const error = useKarateStore((s) => s.error);
+  const initFromSanity = useKarateStore((s) => s.initFromSanity);
+
+  useEffect(() => {
+    initFromSanity();
+  }, [initFromSanity]);
+
   const {
     sessions,
     selectedId,
@@ -116,6 +128,9 @@ export default function KaratePage() {
     },
     [setNote, selectedId]
   );
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorState message={error?.message ?? 'Lỗi không xác định'} />;
 
   if (!selectedSession) {
     return <div className="text-white p-4">Đang tải...</div>;

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { ErrorState } from '../components/shared/ErrorState';
+import { EmptyState } from '../components/shared/EmptyState';
 import SafetyNotice from '../components/spine/SafetyNotice';
 import SpineFilters from '../components/spine/SpineFilters';
 import SpineExerciseList from '../components/spine/SpineExerciseList';
@@ -11,7 +14,24 @@ import TimerControl from '../components/timer/TimerControl';
 import { useSpineBarStore } from '../stores/useSpineBarStore';
 import { useTimerStore } from '../stores/useTimerStore';
 
+// DEBUG flag - bat/tat bang localStorage.setItem('DEBUG_SPINE', '1')
+const debug = (...args) => {
+  if (typeof window !== 'undefined' && localStorage.getItem('DEBUG_SPINE') === '1') {
+    console.log('%c[SpineBarPage]', 'color:#0ea5e9;font-weight:bold', ...args);
+  }
+};
+
 export default function SpineBarPage() {
+  // ============================================================
+  // 1. TAT CA HOOKS PHAI O DAY - KHONG CO RETURN TRUOC DAY
+  // ============================================================
+
+  // Sanity loading state
+  const loading = useSpineBarStore((s) => s.loading);
+  const error = useSpineBarStore((s) => s.error);
+  const initFromSanity = useSpineBarStore((s) => s.initFromSanity);
+
+  // Main store data
   const {
     program,
     selectedId,
@@ -32,34 +52,61 @@ export default function SpineBarPage() {
     }))
   );
 
+  // Local filters
   const [groupFilter, setGroupFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState(0);
   const [barFilter, setBarFilter] = useState('all');
 
-  const items = useMemo(
-    () =>
-      program.items.filter((item) => {
-        if (groupFilter !== 'all' && item.groupId !== groupFilter) return false;
-        if (levelFilter !== 0 && item.level !== levelFilter) return false;
-        if (barFilter !== 'all' && item.bar !== barFilter) return false;
-        return true;
-      }),
-    [program.items, groupFilter, levelFilter, barFilter]
-  );
+  // ===== INIT FROM SANITY =====
+  useEffect(() => {
+    debug('calling initFromSanity()');
+    debug('initFromSanity type:', typeof initFromSanity);
+    if (typeof initFromSanity !== 'function') {
+      console.error('[SpineBarPage] initFromSanity is not a function! Store not updated properly.');
+      return;
+    }
+    initFromSanity();
+  }, [initFromSanity]);
 
-  const selected = useMemo(
-    () => program.items.find((item) => item.id === selectedId) ?? null,
-    [program.items, selectedId]
-  );
+  // ===== DEBUG STATE CHANGES =====
+  useEffect(() => {
+    debug('state update:', {
+      loading,
+      error: error?.message ?? null,
+      programExists: !!program,
+      itemsCount: program?.items?.length ?? 0,
+      groupsCount: program?.groups?.length ?? 0,
+      selectedId,
+    });
+  }, [loading, error, program, selectedId]);
 
-  // Nếu bộ lọc làm bài đang chọn biến mất, chuyển sang bài đầu tiên còn hiển thị.
+  // ===== DERIVED STATE (safe with optional chaining) =====
+  const items = useMemo(() => {
+    const source = program?.items ?? [];
+    const filtered = source.filter((item) => {
+      if (groupFilter !== 'all' && item.groupId !== groupFilter) return false;
+      if (levelFilter !== 0 && item.level !== levelFilter) return false;
+      if (barFilter !== 'all' && item.bar !== barFilter) return false;
+      return true;
+    });
+    return filtered;
+  }, [program, groupFilter, levelFilter, barFilter]);
+
+  const selected = useMemo(() => {
+    const source = program?.items ?? [];
+    return source.find((item) => item.id === selectedId) ?? null;
+  }, [program, selectedId]);
+
+  // Auto-select first item neu filter lam mat selection
   useEffect(() => {
     if (items.length === 0) return;
     if (!items.some((item) => item.id === selectedId)) {
+      debug('auto-select first item:', items[0].id);
       selectItem(items[0].id);
     }
   }, [items, selectedId, selectItem]);
 
+  // ===== TIMER STORE =====
   const timer = useTimerStore(
     useShallow((state) => ({
       phase: state.phase,
@@ -80,12 +127,15 @@ export default function SpineBarPage() {
     }))
   );
 
-  // Nạp session tường minh — timer không tự dò URL.
   const { loadSession } = timer;
   useEffect(() => {
-    if (selected) loadSession(selected);
+    if (selected) {
+      debug('loadSession:', selected.id);
+      loadSession(selected);
+    }
   }, [selected, loadSession]);
 
+  // ===== HANDLERS =====
   const handleSaveNote = useCallback(
     (text) => {
       if (selectedId) setNote(selectedId, text);
@@ -93,17 +143,27 @@ export default function SpineBarPage() {
     [selectedId, setNote]
   );
 
-  const total = program.items.length;
+  // ============================================================
+  // 2. EARLY RETURNS - SAU TAT CA HOOKS
+  // ============================================================
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorState message={error?.message ?? 'Lỗi không xác định'} />;
+  if (!program) return <EmptyState message="Chưa có chương trình Spine Bar" />;
+
+  // ============================================================
+  // 3. RENDER - program da ton tai, an toan de truy cap
+  // ============================================================
+  const total = program.items?.length ?? 0;
   const done = completedIds.length;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-  const routineCount = program.groups.length;
+  const routineCount = program.groups?.length ?? 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
       <Header />
 
       <main className="max-w-6xl w-full mx-auto p-4 md:p-6 flex-grow flex flex-col gap-5">
-        {/* ===== HEADER ===== */}
         <section className="relative bg-gradient-to-r from-sky-900/40 to-slate-800/60 backdrop-blur-sm rounded-3xl border border-sky-500/30 p-5 shadow-2xl overflow-hidden">
           <div className="absolute -top-12 -right-10 w-48 h-48 bg-sky-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -144,14 +204,12 @@ export default function SpineBarPage() {
         <SafetyNotice />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ===== CỘT TRÁI: BÀI ĐANG CHỌN ===== */}
           <section
             className="lg:col-span-7 flex flex-col gap-4 min-w-0"
             aria-label="Bài tập đang chọn"
           >
             {selected ? (
               <>
-                {/* Chọn nhanh trên mobile — danh sách đầy đủ nằm bên dưới */}
                 {items.length > 0 && (
                   <label className="lg:hidden flex items-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/50 px-3 py-2">
                     <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold whitespace-nowrap">
@@ -171,9 +229,6 @@ export default function SpineBarPage() {
                   </label>
                 )}
 
-                {/* Không remount bằng key ở đây: React 19 đang giữ instance cũ
-                    trong fragment. State video/note được reset bằng useEffect
-                    khi selected.id đổi. */}
                 <SpineDetail
                   exercise={selected}
                   isCompleted={completedIds.includes(selected.id)}
@@ -221,7 +276,6 @@ export default function SpineBarPage() {
             )}
           </section>
 
-          {/* ===== CỘT PHẢI: DANH SÁCH ===== */}
           <section
             className="lg:col-span-5 flex flex-col gap-3 min-w-0"
             aria-label="Danh sách bài tập xà"
@@ -235,7 +289,7 @@ export default function SpineBarPage() {
             </div>
 
             <SpineFilters
-              groups={program.groups}
+              groups={program.groups ?? []}
               groupFilter={groupFilter}
               onGroupChange={setGroupFilter}
               levelFilter={levelFilter}

@@ -1,0 +1,25 @@
+export function adaptKarateSession(doc: any) {
+  return {
+    id: doc.id ?? doc._id,
+    name: doc.name,
+    subName: doc.subName,
+    target: doc.target,
+    duration: doc.duration,
+    durationDisplay: doc.durationDisplay,
+    category: doc.category,
+    week: doc.week,
+    level: doc.level,
+    type: doc.type ?? 'karate',
+    icon: doc.icon,
+    equipment: doc.equipment,
+    source: doc.source,
+    guide: doc.guide,
+    homework: doc.homework,
+    track: doc.track,
+    order: doc.order,
+    focus: doc.focus,
+    techniques: doc.techniques ?? [],
+    exercises: doc.exercises ?? [],
+    _sanityId: doc._id,
+  }
+}

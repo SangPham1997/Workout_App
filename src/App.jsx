@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Prefetcher } from './components/shared/Prefetcher';
 
 // Tách bundle theo route: mỗi trang chỉ tải khi được mở.
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -22,6 +23,7 @@ function PageFallback() {
 function App() {
   return (
     <BrowserRouter>
+      <Prefetcher />
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<HomePage />} />

@@ -4,6 +4,8 @@ import { useExerciseStore } from '../stores/useExerciseStore';
 import { useTimerStore } from '../stores/useTimerStore';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { ErrorState } from '../components/shared/ErrorState';
 import TimerControl from '../components/timer/TimerControl';
 import ExerciseList from '../components/exercises/ExerciseList';
 import TechniqueGuide from '../components/simulator/TechniqueGuide';
@@ -17,6 +19,16 @@ const EMBED_OPTIONS = {
 };
 
 function HomePage() {
+
+  // ===== Sanity loading state =====
+  const loading = useExerciseStore((s) => s.loading);
+  const error = useExerciseStore((s) => s.error);
+  const initFromSanity = useExerciseStore((s) => s.initFromSanity);
+
+  useEffect(() => {
+    initFromSanity();
+  }, [initFromSanity]);
+
   // ===== EXERCISE STORE =====
   const {
     exercises,
@@ -98,6 +110,9 @@ function HomePage() {
   );
 
   // ===== GUARD =====
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorState message={error?.message ?? 'Lỗi không xác định'} />;
+
   if (!selectedExercise) {
     return (
       <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
