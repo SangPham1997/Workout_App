@@ -1,15 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-/**
- * Store dùng chung cho một "Program".
- *
- * `initFromSanity` hỗ trợ 2 pattern:
- *  - Function thường:  async () => {...}
- *  - Curried function: ({ set, get, initialProgram }) => async () => {...}
- *
- * Factory tự unwrap và đảm bảo loading luôn reset sau khi xong.
- */
 export const createProgramStore = ({
   name,
   program,
@@ -29,26 +20,25 @@ export const createProgramStore = ({
 
         loading: initFromSanity ? true : false,
         error: null,
+        _isFetching: false,
+        _fetchedFromSanity: false,
 
-        // ===== SANITY LOADER (unwrap curried fn) =====
         ...(initFromSanity
           ? {
-              initFromSanity: async () => {
+              initFromSanity: async (options = {}) => {
                 const current = get();
                 const loadedFromSanity = current.program !== program;
-                if (!current.loading && loadedFromSanity) {
-                  console.debug(`[${name}] already loaded, skip`);
-                  return;
-                }
+                if (current._isFetching) return;
+                if (!options.force && current._fetchedFromSanity) return;
 
-                set({ loading: true, error: null });
+                set({ loading: true, error: null, _isFetching: true });
 
                 try {
                   const fnResult = initFromSanity({ set, get, initialProgram: program });
 
                   let promise;
                   if (typeof fnResult === 'function') {
-                    promise = fnResult();
+                    promise = fnResult(options);
                   } else if (fnResult && typeof fnResult.then === 'function') {
                     promise = fnResult;
                   } else {
@@ -59,19 +49,17 @@ export const createProgramStore = ({
 
                   set((state) => ({
                     loading: false,
+                    _isFetching: false,
                     error: state.error ?? null,
                   }));
-
-                  console.debug(`[${name}] initFromSanity completed`);
                 } catch (err) {
                   console.error(`[${name}] initFromSanity failed:`, err);
-                  set({ error: err, loading: false });
+                  set({ error: err, loading: false, _isFetching: false });
                 }
               },
             }
           : {}),
 
-        // ===== ACTIONS =====
         selectItem: (id) => {
           const { program: p } = get();
           if (!getItemIds(p).has(id)) return;
@@ -128,6 +116,8 @@ export const createProgramStore = ({
           merged.notes = merged.notes || {};
           merged.loading = currentState.loading;
           merged.error = currentState.error;
+          merged._isFetching = currentState._isFetching;
+          merged._fetchedFromSanity = currentState._fetchedFromSanity;
           return merged;
         },
       }
