@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { karateSessions } from '../data/karate';
+import { sanityClient } from '../lib/sanity.client'
+import { KARATE_SESSIONS_QUERY } from '../lib/queries/karate'
+import { adaptKarateSession } from '../lib/adapters/karateSession'
+import { cachedFetch } from '../lib/sanityCache'
 
 const sessionIds = new Set(karateSessions.map((session) => session.id));
 const firstId = karateSessions[0]?.id ?? null;
@@ -8,6 +12,25 @@ const firstId = karateSessions[0]?.id ?? null;
 export const useKarateStore = create(
   persist(
     (set, get) => ({
+loading: true,
+  error: null,
+  initFromSanity: async () => {
+    const current = get()
+    if (!current.loading && current.sessions.length > 0) return
+    set({ loading: true, error: null })
+    try {
+      const docs = await cachedFetch(sanityClient, KARATE_SESSIONS_QUERY)
+      const adapted = docs.map(adaptKarateSession)
+      set({
+        sessions: adapted,
+        selectedId: current.selectedId ?? adapted[0]?.id ?? null,
+        loading: false,
+      })
+    } catch (err) {
+      console.error('[useKarateStore] fetch failed:', err)
+      set({ error: err, loading: false })
+    }
+  },
       sessions: karateSessions,
       selectedId: firstId,
       completedIds: [], // các buổi đã đánh dấu hoàn thành (lưu localStorage)

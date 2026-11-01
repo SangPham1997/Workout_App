@@ -1,2 +1,24 @@
-# Ignore node_modules
 node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+dist-ssr/
+build/
+.sanity/
+.vite/
+.turbo/
+coverage/
+*.log
+npm-debug.log*
+.cache/
+.parcel-cache/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.bak
+*.backup
+*.orig
+*.tsbuildinfo
