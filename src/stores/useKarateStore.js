@@ -1,41 +1,70 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { karateSessions } from '../data/karate';
-import { sanityClient } from '../lib/sanity.client'
-import { KARATE_SESSIONS_QUERY } from '../lib/queries/karate'
-import { adaptKarateSession } from '../lib/adapters/karateSession'
-import { cachedFetch } from '../lib/sanityCache'
+import { sanityClient, freshClient } from '../lib/sanity.client';
+import { KARATE_SESSIONS_QUERY } from '../lib/queries/karate';
+import { adaptKarateSession } from '../lib/adapters/karateSession';
+import { cachedFetch } from '../lib/sanityCache';
 
-const sessionIds = new Set(karateSessions.map((session) => session.id));
 const firstId = karateSessions[0]?.id ?? null;
+const initialSessions = Object.freeze([...karateSessions]);
+const sessionIds = new Set(initialSessions.map((s) => s.id));
 
 export const useKarateStore = create(
   persist(
     (set, get) => ({
-loading: true,
-  error: null,
-  initFromSanity: async () => {
-    const current = get()
-    if (!current.loading && current.sessions.length > 0) return
-    set({ loading: true, error: null })
-    try {
-      const docs = await cachedFetch(sanityClient, KARATE_SESSIONS_QUERY)
-      const adapted = docs.map(adaptKarateSession)
-      set({
-        sessions: adapted,
-        selectedId: current.selectedId ?? adapted[0]?.id ?? null,
-        loading: false,
-      })
-    } catch (err) {
-      console.error('[useKarateStore] fetch failed:', err)
-      set({ error: err, loading: false })
-    }
-  },
-      sessions: karateSessions,
+      sessions: initialSessions,
       selectedId: firstId,
-      completedIds: [], // các buổi đã đánh dấu hoàn thành (lưu localStorage)
-      notes: {}, // ghi chú tập theo từng buổi
-      lastPracticedAt: {}, // id -> timestamp lần hoàn thành gần nhất
+      completedIds: [],
+      notes: {},
+      lastPracticedAt: {},
+
+      loading: true,
+      error: null,
+
+      _isFetching: false,
+      _fetchedFromSanity: false,
+
+      initFromSanity: async (options = {}) => {
+        const { force = false } = options;
+        const current = get();
+
+        if (current._isFetching) return;
+        if (!force && current._fetchedFromSanity) return;
+
+        set({ loading: true, error: null, _isFetching: true });
+
+        try {
+          const client = force ? freshClient : sanityClient;
+          const docs = await cachedFetch(client, KARATE_SESSIONS_QUERY, undefined, { force });
+
+          const seen = new Set();
+          const adapted = docs
+            .map(adaptKarateSession)
+            .filter((s) => {
+              if (seen.has(s.id)) return false;
+              seen.add(s.id);
+              return true;
+            });
+
+          sessionIds.clear();
+          adapted.forEach((s) => sessionIds.add(s.id));
+
+          set({
+            sessions: adapted,
+            selectedId: sessionIds.has(current.selectedId)
+              ? current.selectedId
+              : adapted[0]?.id ?? null,
+            loading: false,
+            error: null,
+            _isFetching: false,
+            _fetchedFromSanity: true,
+          });
+        } catch (err) {
+          console.error('[useKarateStore] fetch failed:', err);
+          set({ error: err, loading: false, _isFetching: false });
+        }
+      },
 
       selectSession: (id) => {
         if (!sessionIds.has(id)) return;
@@ -44,7 +73,7 @@ loading: true,
 
       getSelectedSession: () => {
         const { sessions, selectedId } = get();
-        return sessions.find((session) => session.id === selectedId) ?? sessions[0] ?? null;
+        return sessions.find((s) => s.id === selectedId) ?? sessions[0] ?? null;
       },
 
       toggleComplete: (id) => {
@@ -54,11 +83,9 @@ loading: true,
           const completedIds = isDone
             ? state.completedIds.filter((x) => x !== id)
             : [...state.completedIds, id];
-
           const lastPracticedAt = { ...state.lastPracticedAt };
           if (isDone) delete lastPracticedAt[id];
           else lastPracticedAt[id] = Date.now();
-
           return { completedIds, lastPracticedAt };
         });
       },
@@ -75,15 +102,13 @@ loading: true,
     }),
     {
       name: 'karate-storage',
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         selectedId: state.selectedId,
         completedIds: state.completedIds,
         notes: state.notes,
         lastPracticedAt: state.lastPracticedAt,
       }),
-      // v0 lưu selectedIndex; đổi sang selectedId để dữ liệu buổi tập thay đổi
-      // không làm lệch buổi đang chọn.
       migrate: (persistedState, oldVersion) => {
         const state = persistedState ? { ...persistedState } : {};
         if (oldVersion === 0 && Number.isInteger(state.selectedIndex)) {
@@ -94,13 +119,14 @@ loading: true,
       },
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState || {}) };
-        merged.sessions = karateSessions;
         if (!sessionIds.has(merged.selectedId)) merged.selectedId = firstId;
-        merged.completedIds = (merged.completedIds || []).filter((id) =>
-          sessionIds.has(id)
-        );
+        merged.completedIds = (merged.completedIds || []).filter((id) => sessionIds.has(id));
         merged.notes = merged.notes || {};
         merged.lastPracticedAt = merged.lastPracticedAt || {};
+        merged.loading = currentState.loading;
+        merged.error = currentState.error;
+        merged._isFetching = currentState._isFetching;
+        merged._fetchedFromSanity = currentState._fetchedFromSanity;
         return merged;
       },
     }

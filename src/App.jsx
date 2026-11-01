@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Prefetcher } from './components/shared/Prefetcher';
 
@@ -22,7 +23,8 @@ function PageFallback() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
       <Prefetcher />
       <Suspense fallback={<PageFallback />}>
         <Routes>
@@ -34,6 +36,7 @@ function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

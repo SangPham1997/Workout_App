@@ -1,8 +1,8 @@
 import { createProgramStore } from './createProgramStore';
 import { spineBarProgram } from '../data/programs/spineBar';
-import { sanityClient } from '../lib/sanity.client';
+import { sanityClient, freshClient } from '../lib/sanity.client';
 import { SPINE_PROGRAM_QUERY } from '../lib/queries/programs';
-import { adaptExercise } from '../lib/adapters/exercise'
+import { adaptExercise } from '../lib/adapters/exercise';
 import { cachedFetch } from '../lib/sanityCache';
 
 const transformItem = (item) => ({
@@ -20,18 +20,20 @@ const transformItem = (item) => ({
 export const useSpineBarStore = createProgramStore({
   name: 'spine-bar-storage',
   program: spineBarProgram,
-  version: 1,
-  initFromSanity: ({ set, get, initialProgram }) => async () => {
+  version: 2,
+  initFromSanity: ({ set, get, initialProgram }) => async (options = {}) => {
+    const { force = false } = options;
     const current = get();
 
-    // Idempotent: chỉ skip nếu đã load TỪ SANITY (program khác static initial)
-    const loadedFromSanity = current.program !== initialProgram;
-    if (!current.loading && loadedFromSanity) return;
+    if (current._isFetching) return;
+    if (!force && current._fetchedFromSanity) return;
 
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, _isFetching: true });
 
     try {
-      const doc = await cachedFetch(sanityClient, SPINE_PROGRAM_QUERY);
+      const client = force ? freshClient : sanityClient;
+      const doc = await cachedFetch(client, SPINE_PROGRAM_QUERY, undefined, { force });
+
       if (!doc) throw new Error('spine-bar program not found on Sanity');
 
       const newProgram = {
@@ -52,10 +54,12 @@ export const useSpineBarStore = createProgramStore({
             : newProgram.items[0]?.id ?? null,
         loading: false,
         error: null,
+        _isFetching: false,
+        _fetchedFromSanity: true,
       });
     } catch (err) {
       console.error('[useSpineBarStore] fetch failed:', err);
-      set({ error: err, loading: false });
+      set({ error: err, loading: false, _isFetching: false });
     }
   },
 });

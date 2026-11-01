@@ -1,43 +1,60 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { homeWorkoutProgram } from '../data/programs/homeWorkout';
-import { sanityClient } from '../lib/sanity.client'
-import { EXERCISES_QUERY } from '../lib/queries/exercises'
-import { adaptExercise } from '../lib/adapters/exercise'
-import { cachedFetch } from '../lib/sanityCache'
+import { sanityClient, freshClient } from '../lib/sanity.client';
+import { EXERCISES_QUERY } from '../lib/queries/exercises';
+import { adaptExercise } from '../lib/adapters/exercise';
+import { cachedFetch } from '../lib/sanityCache';
 
-const initialExercises = homeWorkoutProgram.items;
+const initialExercises = Object.freeze([...homeWorkoutProgram.items]);
 const firstId = initialExercises[0]?.id ?? null;
-
-// Memo object theo id — giữ tham chiếu ổn định để selector không tạo giá trị
-// mới gây re-render thừa.
 const exercisesById = new Map(initialExercises.map((ex) => [ex.id, ex]));
 
 export const useExerciseStore = create(
   persist(
     (set, get) => ({
-loading: true,
-  error: null,
-  initFromSanity: async () => {
-    const current = get()
-    if (!current.loading && current.exercises.length > 0) return
-    set({ loading: true, error: null })
-    try {
-      const docs = await cachedFetch(sanityClient, EXERCISES_QUERY)
-      const adapted = docs.map(adaptExercise)
-      set({
-        exercises: adapted,
-        selectedId: current.selectedId ?? adapted[0]?.id ?? null,
-        loading: false,
-      })
-    } catch (err) {
-      console.error('[useExerciseStore] fetch failed:', err)
-      set({ error: err, loading: false })
-    }
-  },
       exercises: initialExercises,
       selectedId: firstId,
-      completedWeeks: [], // [1, 2, 3, 4]
+      completedWeeks: [],
+
+      loading: true,
+      error: null,
+
+      _isFetching: false,
+      _fetchedFromSanity: false,
+
+      initFromSanity: async (options = {}) => {
+        const { force = false } = options;
+        const current = get();
+
+        if (current._isFetching) return;
+        if (!force && current._fetchedFromSanity) return;
+
+        set({ loading: true, error: null, _isFetching: true });
+
+        try {
+          const client = force ? freshClient : sanityClient;
+          const docs = await cachedFetch(client, EXERCISES_QUERY, undefined, { force });
+          const adapted = docs.map(adaptExercise);
+
+          exercisesById.clear();
+          adapted.forEach((ex) => exercisesById.set(ex.id, ex));
+
+          set({
+            exercises: adapted,
+            selectedId: exercisesById.has(current.selectedId)
+              ? current.selectedId
+              : adapted[0]?.id ?? null,
+            loading: false,
+            error: null,
+            _isFetching: false,
+            _fetchedFromSanity: true,
+          });
+        } catch (err) {
+          console.error('[useExerciseStore] fetch failed:', err);
+          set({ error: err, loading: false, _isFetching: false });
+        }
+      },
 
       selectExercise: (id) => {
         if (!exercisesById.has(id)) return;
@@ -46,6 +63,7 @@ loading: true,
 
       getSelectedExercise: () => {
         const { selectedId } = get();
+        if (!selectedId) return initialExercises[0] ?? null;
         return exercisesById.get(selectedId) ?? initialExercises[0] ?? null;
       },
 
@@ -58,12 +76,11 @@ loading: true,
     }),
     {
       name: 'exercise-storage',
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         selectedId: state.selectedId,
         completedWeeks: state.completedWeeks,
       }),
-      // v0 lưu selectedIndex; đổi sang selectedId để thêm/xoá bài không lệch.
       migrate: (persistedState, oldVersion) => {
         const state = persistedState ? { ...persistedState } : {};
         if (oldVersion === 0 && Number.isInteger(state.selectedIndex)) {
@@ -74,10 +91,12 @@ loading: true,
       },
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState || {}) };
-        if (!exercisesById.has(merged.selectedId)) {
-          merged.selectedId = firstId;
-        }
+        if (!exercisesById.has(merged.selectedId)) merged.selectedId = firstId;
         merged.completedWeeks = merged.completedWeeks || [];
+        merged.loading = currentState.loading;
+        merged.error = currentState.error;
+        merged._isFetching = currentState._isFetching;
+        merged._fetchedFromSanity = currentState._fetchedFromSanity;
         return merged;
       },
     }
