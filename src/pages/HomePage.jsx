@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useExerciseStore } from '../stores/useExerciseStore';
 import { useTimerStore } from '../stores/useTimerStore';
@@ -97,8 +97,12 @@ function HomePage() {
 
   // ===== LOAD SESSION CHO TIMER =====
   // Timer không tự dò route nữa; mỗi lần đổi bài, nạp session tường minh.
+  const lastLoadedIdRef = useRef(null);
   useEffect(() => {
-    if (selectedExercise) loadSession(selectedExercise);
+    if (!selectedExercise) return;
+    if (lastLoadedIdRef.current === selectedExercise.id) return;
+    lastLoadedIdRef.current = selectedExercise.id;
+    loadSession(selectedExercise);
   }, [selectedExercise, loadSession]);
 
   // ===== HANDLERS =====

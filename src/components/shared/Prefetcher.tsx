@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { useExerciseStore } from "../../stores/useExerciseStore";
 import { useKarateStore } from "../../stores/useKarateStore";
 import { useSpineBarStore } from "../../stores/useSpineBarStore";
+import { useTimerStore } from "../../stores/useTimerStore";
 
-const POLL_INTERVAL_MS = 3 * 60 * 1000; // 3 phút
-const VISIBILITY_DEBOUNCE_MS = 500; // Debounce 500ms
+const POLL_INTERVAL_MS = 3 * 60 * 1000;
+const VISIBILITY_DEBOUNCE_MS = 500;
 
 export function Prefetcher() {
   useEffect(() => {
@@ -18,12 +19,28 @@ export function Prefetcher() {
         useSpineBarStore.getState().initFromSanity?.(),
       ]);
 
-    const force = () =>
-      Promise.allSettled([
+    const force = () => {
+      // ⚡ FIX: Không force refresh khi user đang workout
+      const timer = useTimerStore.getState();
+      const timerActive =
+        timer.phase !== "idle" && timer.phase !== "completed";
+      if (timerActive) {
+        if (import.meta.env.DEV) {
+          console.debug(
+            "[Prefetcher] Skip force refresh — timer active:",
+            timer.phase,
+            "set", timer.currentSet + "/" + timer.totalSets
+          );
+        }
+        return Promise.resolve([]);
+      }
+
+      return Promise.allSettled([
         useExerciseStore.getState().initFromSanity?.({ force: true }),
         useKarateStore.getState().initFromSanity?.({ force: true }),
         useSpineBarStore.getState().initFromSanity?.({ force: true }),
       ]);
+    };
 
     const idle =
       typeof window !== "undefined" && "requestIdleCallback" in window
@@ -32,11 +49,9 @@ export function Prefetcher() {
 
     const idleId = idle(() => warm());
 
-    // Polling chỉ chạy khi tab visible
     const intervalId = setInterval(() => {
       if (document.visibilityState === "visible") {
         const now = Date.now();
-        // Chỉ refresh nếu > 30s từ lần cuối (tránh spam khi vừa quay lại tab)
         if (now - lastVisibilityRefresh > 30 * 1000) {
           force();
           lastVisibilityRefresh = now;
@@ -44,13 +59,11 @@ export function Prefetcher() {
       }
     }, POLL_INTERVAL_MS);
 
-    // Debounce visibility change
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         if (visibilityTimeout) clearTimeout(visibilityTimeout);
         visibilityTimeout = setTimeout(() => {
           const now = Date.now();
-          // Chỉ refresh nếu > 30s từ lần cuối
           if (now - lastVisibilityRefresh > 30 * 1000) {
             force();
             lastVisibilityRefresh = now;

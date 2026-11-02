@@ -5,8 +5,6 @@ import {
   beepAllComplete,
 } from '../utils/sound';
 
-// Nhịp tick nhỏ hơn 1s để đồng hồ bám sát thời gian thực (không bị trôi
-// khi tab bị throttle). Thời gian còn lại luôn tính từ `endsAt`, không trừ dồn.
 const TICK_MS = 250;
 
 const getSessionConfig = (session) => {
@@ -33,30 +31,41 @@ const remainingSeconds = (endsAt) =>
   Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 
 export const useTimerStore = create((set, get) => ({
-  // ===== SESSION ĐANG CHẠY =====
-  // Page gọi loadSession(session) khi đổi bài/buổi. Timer không còn tự dò
-  // window.location.pathname, nhờ vậy thêm route mới không cần sửa timer.
   session: null,
 
-  // ===== CONFIG =====
   workDuration: 30,
   restDuration: 0,
   totalSets: 1,
 
-  // ===== RUNTIME =====
   phase: 'idle',
   currentSet: 1,
   timeLeft: 30,
   isRunning: false,
   isCompleted: false,
-  endsAt: null, // timestamp kết thúc phase hiện tại (null khi tạm dừng)
+  endsAt: null,
 
-  // ===== SOUND =====
   soundEnabled: true,
   toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
 
-  // ===== ACTIONS =====
   loadSession: (session) => {
+    const current = get();
+
+    // ⚡ FIX: Không reset timer nếu cùng exercise + timer đang chạy/paused
+    const sameSession = current.session?.id === session?.id;
+    const timerActive =
+      current.phase !== 'idle' && current.phase !== 'completed';
+
+    if (sameSession && timerActive) {
+      if (import.meta.env.DEV) {
+        console.debug(
+          '[useTimerStore] loadSession skipped — same session, timer active',
+          { id: session?.id, phase: current.phase }
+        );
+      }
+      return;
+    }
+
+    // Reset bình thường (new exercise hoặc completed/idle)
     clearTimer();
     const config = getSessionConfig(session);
     set({
@@ -87,7 +96,6 @@ export const useTimerStore = create((set, get) => ({
         endsAt: Date.now() + config.workDuration * 1000,
       });
     } else {
-      // Tiếp tục từ trạng thái tạm dừng
       if (timeLeft <= 0) return;
       set({ isRunning: true, endsAt: Date.now() + timeLeft * 1000 });
     }
@@ -108,7 +116,6 @@ export const useTimerStore = create((set, get) => ({
     const remaining = remainingSeconds(endsAt);
     set({ isRunning: false, timeLeft: remaining, endsAt: null });
 
-    // Tạm dừng đúng lúc phase vừa hết → chuyển phase luôn.
     if (remaining <= 0) get().advancePhase();
   },
 
@@ -145,7 +152,6 @@ export const useTimerStore = create((set, get) => ({
 
     if (phase === 'work') {
       if (currentSet < totalSets) {
-        // Beep luôn, dù có nghỉ hay không
         if (soundEnabled) beepSetComplete();
 
         if (restDuration > 0) {
