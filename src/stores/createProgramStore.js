@@ -66,7 +66,7 @@ export const createProgramStore = ({
                     error: state.error ?? null,
                   }));
                 } catch (err) {
-                  console.error([${name}] initFromSanity failed:, err);
+                  console.error(`[${name}] initFromSanity failed:`, err);
                   set({
                     error: err,
                     loading: false,
