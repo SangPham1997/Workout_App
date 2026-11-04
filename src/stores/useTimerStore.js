@@ -147,8 +147,11 @@ export const useTimerStore = create((set, get) => ({
       workDuration,
       restDuration,
       soundEnabled,
+      session,
     } = get();
     const now = Date.now();
+    // Đồng bộ endsAt khi duration thay đổi (phòng config lệch)
+    const cfg = getSessionConfig(session);
 
     if (phase === 'work') {
       if (currentSet < totalSets) {

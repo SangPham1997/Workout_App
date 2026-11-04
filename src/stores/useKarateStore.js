@@ -5,10 +5,18 @@ import { sanityClient, freshClient } from '../lib/sanity.client';
 import { KARATE_SESSIONS_QUERY } from '../lib/queries/karate';
 import { adaptKarateSession } from '../lib/adapters/karateSession';
 import { cachedFetch } from '../lib/sanityCache';
+import { createSanityListInit } from './_helpers/createSanityInit';
 
-const firstId = karateSessions[0]?.id ?? null;
 const initialSessions = Object.freeze([...karateSessions]);
+const firstId = initialSessions[0]?.id ?? null;
+
+// Set<id> module-level, luôn đồng bộ với state.sessions.
 const sessionIds = new Set(initialSessions.map((s) => s.id));
+
+function syncSessionIds(sessions) {
+  sessionIds.clear();
+  for (const s of sessions) sessionIds.add(s.id);
+}
 
 export const useKarateStore = create(
   persist(
@@ -26,53 +34,17 @@ export const useKarateStore = create(
       _fetchedFromSanity: false,
       _isRefreshing: false,
 
-      initFromSanity: async (options = {}) => {
-        const { force = false } = options;
-        const current = get();
-
-        if (current._isFetching) return;
-        if (!force && current._fetchedFromSanity) return;
-
-        const isInitialLoad = !current._fetchedFromSanity;
-        set({
-          loading: isInitialLoad,
-          _isRefreshing: !isInitialLoad,
-          error: null,
-          _isFetching: true,
-        });
-
-        try {
-          const client = force ? freshClient : sanityClient;
-          const docs = await cachedFetch(client, KARATE_SESSIONS_QUERY, undefined, { force });
-
-          const seen = new Set();
-          const adapted = docs
-            .map(adaptKarateSession)
-            .filter((s) => {
-              if (seen.has(s.id)) return false;
-              seen.add(s.id);
-              return true;
-            });
-
-          sessionIds.clear();
-          adapted.forEach((s) => sessionIds.add(s.id));
-
-          set({
-            sessions: adapted,
-            selectedId: sessionIds.has(current.selectedId)
-              ? current.selectedId
-              : adapted[0]?.id ?? null,
-            loading: false,
-            _isRefreshing: false,
-            error: null,
-            _isFetching: false,
-            _fetchedFromSanity: true,
-          });
-        } catch (err) {
-          console.error('[useKarateStore] fetch failed:', err);
-          set({ error: err, loading: false, _isRefreshing: false, _isFetching: false });
-        }
-      },
+      initFromSanity: createSanityListInit({
+        name: 'useKarateStore',
+        query: KARATE_SESSIONS_QUERY,
+        adapt: adaptKarateSession,
+        getClient: (force) => (force ? freshClient : sanityClient),
+        cachedFetch,
+        stateKey: 'sessions',
+        getIdSet: () => sessionIds,
+        get,
+        set,
+      }),
 
       selectSession: (id) => {
         if (!sessionIds.has(id)) return;
@@ -127,15 +99,22 @@ export const useKarateStore = create(
       },
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState || {}) };
-        if (!sessionIds.has(merged.selectedId)) merged.selectedId = firstId;
-        merged.completedIds = (merged.completedIds || []).filter((id) => sessionIds.has(id));
+        const currentIds = new Set(merged.sessions.map((s) => s.id));
+        if (!currentIds.has(merged.selectedId)) merged.selectedId = firstId;
+        merged.completedIds = (merged.completedIds || []).filter((id) =>
+          currentIds.has(id)
+        );
         merged.notes = merged.notes || {};
         merged.lastPracticedAt = merged.lastPracticedAt || {};
         merged.loading = currentState.loading;
         merged.error = currentState.error;
         merged._isFetching = currentState._isFetching;
         merged._fetchedFromSanity = currentState._fetchedFromSanity;
+        merged._isRefreshing = currentState._isRefreshing;
         return merged;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state?.sessions) syncSessionIds(state.sessions);
       },
     }
   )

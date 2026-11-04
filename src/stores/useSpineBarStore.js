@@ -28,12 +28,18 @@ export const useSpineBarStore = createProgramStore({
     if (current._isFetching) return;
     if (!force && current._fetchedFromSanity) return;
 
-    set({ loading: true,
-      _isRefreshing: false, error: null, _isFetching: true });
+    set({
+      loading: !current._fetchedFromSanity,
+      _isRefreshing: current._fetchedFromSanity,
+      error: null,
+      _isFetching: true,
+    });
 
     try {
       const client = force ? freshClient : sanityClient;
-      const doc = await cachedFetch(client, SPINE_PROGRAM_QUERY, undefined, { force });
+      const doc = await cachedFetch(client, SPINE_PROGRAM_QUERY, undefined, {
+        force,
+      });
 
       if (!doc) throw new Error('spine-bar program not found on Sanity');
 
@@ -47,12 +53,15 @@ export const useSpineBarStore = createProgramStore({
         items: (doc.items ?? []).map(transformItem),
       };
 
+      const hasSelected = newProgram.items.some(
+        (i) => i.id === current.selectedId
+      );
+
       set({
         program: newProgram,
-        selectedId:
-          current.selectedId && newProgram.items.some((i) => i.id === current.selectedId)
-            ? current.selectedId
-            : newProgram.items[0]?.id ?? null,
+        selectedId: hasSelected
+          ? current.selectedId
+          : newProgram.items[0]?.id ?? null,
         loading: false,
         _isRefreshing: false,
         error: null,
@@ -61,7 +70,13 @@ export const useSpineBarStore = createProgramStore({
       });
     } catch (err) {
       console.error('[useSpineBarStore] fetch failed:', err);
-      set({ error: err, loading: false, _isRefreshing: false, _isFetching: false });
+      set({
+        error: err,
+        loading: false,
+        _isRefreshing: false,
+        _isFetching: false,
+      });
+      throw err; // để base store cũng thấy lỗi và reset cờ
     }
   },
 });

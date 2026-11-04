@@ -22,19 +22,29 @@ export const createProgramStore = ({
         error: null,
         _isFetching: false,
         _fetchedFromSanity: false,
+        _isRefreshing: false,
 
         ...(initFromSanity
           ? {
               initFromSanity: async (options = {}) => {
                 const current = get();
-                const loadedFromSanity = current.program !== program;
                 if (current._isFetching) return;
                 if (!options.force && current._fetchedFromSanity) return;
 
-                set({ loading: true, error: null, _isFetching: true });
+                const isInitialLoad = !current._fetchedFromSanity;
+                set({
+                  loading: isInitialLoad,
+                  _isRefreshing: !isInitialLoad,
+                  error: null,
+                  _isFetching: true,
+                });
 
                 try {
-                  const fnResult = initFromSanity({ set, get, initialProgram: program });
+                  const fnResult = initFromSanity({
+                    set,
+                    get,
+                    initialProgram: program,
+                  });
 
                   let promise;
                   if (typeof fnResult === 'function') {
@@ -47,14 +57,22 @@ export const createProgramStore = ({
 
                   await promise;
 
+                  // Không ghi đè error nếu init impl đã set error, nhưng đảm
+                  // bảo cờ runtime luôn được reset.
                   set((state) => ({
                     loading: false,
+                    _isRefreshing: false,
                     _isFetching: false,
                     error: state.error ?? null,
                   }));
                 } catch (err) {
-                  console.error(`[${name}] initFromSanity failed:`, err);
-                  set({ error: err, loading: false, _isFetching: false });
+                  console.error([${name}] initFromSanity failed:, err);
+                  set({
+                    error: err,
+                    loading: false,
+                    _isRefreshing: false,
+                    _isFetching: false,
+                  });
                 }
               },
             }
@@ -89,7 +107,11 @@ export const createProgramStore = ({
 
         getSelectedItem: () => {
           const { program: p, selectedId } = get();
-          return p?.items?.find((item) => item.id === selectedId) ?? p?.items?.[0] ?? null;
+          return (
+            p?.items?.find((item) => item.id === selectedId) ??
+            p?.items?.[0] ??
+            null
+          );
         },
       }),
       {
@@ -112,12 +134,15 @@ export const createProgramStore = ({
           const merged = { ...currentState, ...(persistedState || {}) };
           const currentIds = getItemIds(merged.program);
           if (!currentIds.has(merged.selectedId)) merged.selectedId = firstId;
-          merged.completedIds = (merged.completedIds || []).filter((id) => currentIds.has(id));
+          merged.completedIds = (merged.completedIds || []).filter((id) =>
+            currentIds.has(id)
+          );
           merged.notes = merged.notes || {};
           merged.loading = currentState.loading;
           merged.error = currentState.error;
           merged._isFetching = currentState._isFetching;
           merged._fetchedFromSanity = currentState._fetchedFromSanity;
+          merged._isRefreshing = currentState._isRefreshing;
           return merged;
         },
       }

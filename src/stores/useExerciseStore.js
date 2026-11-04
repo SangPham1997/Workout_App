@@ -5,10 +5,19 @@ import { sanityClient, freshClient } from '../lib/sanity.client';
 import { EXERCISES_QUERY } from '../lib/queries/exercises';
 import { adaptExercise } from '../lib/adapters/exercise';
 import { cachedFetch } from '../lib/sanityCache';
+import { createSanityListInit } from './_helpers/createSanityInit';
 
 const initialExercises = Object.freeze([...homeWorkoutProgram.items]);
 const firstId = initialExercises[0]?.id ?? null;
-const exercisesById = new Map(initialExercises.map((ex) => [ex.id, ex]));
+
+// Set<id> module-level, luôn được đồng bộ với state.exercises hiện tại.
+// Được rebuild khi: khởi tạo, fetch thành công, và rehydrate từ localStorage.
+const exercisesById = new Set(initialExercises.map((ex) => ex.id));
+
+function syncExercisesById(exercises) {
+  exercisesById.clear();
+  for (const ex of exercises) exercisesById.add(ex.id);
+}
 
 export const useExerciseStore = create(
   persist(
@@ -22,39 +31,19 @@ export const useExerciseStore = create(
 
       _isFetching: false,
       _fetchedFromSanity: false,
+      _isRefreshing: false,
 
-      initFromSanity: async (options = {}) => {
-        const { force = false } = options;
-        const current = get();
-
-        if (current._isFetching) return;
-        if (!force && current._fetchedFromSanity) return;
-
-        set({ loading: true, error: null, _isFetching: true });
-
-        try {
-          const client = force ? freshClient : sanityClient;
-          const docs = await cachedFetch(client, EXERCISES_QUERY, undefined, { force });
-          const adapted = docs.map(adaptExercise);
-
-          exercisesById.clear();
-          adapted.forEach((ex) => exercisesById.set(ex.id, ex));
-
-          set({
-            exercises: adapted,
-            selectedId: exercisesById.has(current.selectedId)
-              ? current.selectedId
-              : adapted[0]?.id ?? null,
-            loading: false,
-            error: null,
-            _isFetching: false,
-            _fetchedFromSanity: true,
-          });
-        } catch (err) {
-          console.error('[useExerciseStore] fetch failed:', err);
-          set({ error: err, loading: false, _isFetching: false });
-        }
-      },
+      initFromSanity: createSanityListInit({
+        name: 'useExerciseStore',
+        query: EXERCISES_QUERY,
+        adapt: adaptExercise,
+        getClient: (force) => (force ? freshClient : sanityClient),
+        cachedFetch,
+        stateKey: 'exercises',
+        getIdSet: () => exercisesById,
+        get,
+        set,
+      }),
 
       selectExercise: (id) => {
         if (!exercisesById.has(id)) return;
@@ -62,9 +51,13 @@ export const useExerciseStore = create(
       },
 
       getSelectedExercise: () => {
-        const { selectedId } = get();
-        if (!selectedId) return initialExercises[0] ?? null;
-        return exercisesById.get(selectedId) ?? initialExercises[0] ?? null;
+        const { exercises, selectedId } = get();
+        return (
+          exercises.find((ex) => ex.id === selectedId) ??
+          exercises[0] ??
+          initialExercises[0] ??
+          null
+        );
       },
 
       toggleWeekComplete: (weekNum) =>
@@ -91,13 +84,23 @@ export const useExerciseStore = create(
       },
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState || {}) };
-        if (!exercisesById.has(merged.selectedId)) merged.selectedId = firstId;
+        // selectedId validate dựa trên state.exercises hiện tại (có thể là
+        // initialExercises lúc rehydrate, sẽ được fetch cập nhật sau).
+        const currentIds = new Set(merged.exercises.map((ex) => ex.id));
+        if (!currentIds.has(merged.selectedId)) merged.selectedId = firstId;
         merged.completedWeeks = merged.completedWeeks || [];
+        // Các cờ runtime không lấy từ persisted.
         merged.loading = currentState.loading;
         merged.error = currentState.error;
         merged._isFetching = currentState._isFetching;
         merged._fetchedFromSanity = currentState._fetchedFromSanity;
+        merged._isRefreshing = currentState._isRefreshing;
         return merged;
+      },
+      onRehydrateStorage: () => (state) => {
+        // FIX: rebuild Set<id> ngay sau khi đọc từ localStorage, tránh
+        // trường hợp exercises trong state đã đổi nhưng Set vẫn giữ dữ liệu cũ.
+        if (state?.exercises) syncExercisesById(state.exercises);
       },
     }
   )

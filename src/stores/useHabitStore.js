@@ -12,7 +12,7 @@ import { TWO_MINUTE_MAX_PER_WEEK } from '../data/habitSettings';
 const EMPTY_DATES = Object.freeze([]);
 
 // ===== DERIVED STATE CACHE =====
-// `selectTodayHabits` tạo object mới cho mỗi habit. Nếu tạo lại mọi object ở
+// selectTodayHabits tạo object mới cho mỗi habit. Nếu tạo lại mọi object ở
 // mọi lần check-in, toàn bộ HabitCard (memo) sẽ re-render dù chỉ 1 habit đổi.
 // Cache theo id + tham chiếu habit/dates/usage giữ nguyên object cũ khi dữ liệu
 // của habit đó không thay đổi → memo của HabitCard mới có tác dụng.
@@ -29,7 +29,7 @@ function getTwoMinuteUsageCount(usage, weekStart) {
 /**
  * Selector thuần (dùng trực tiếp với zustand + useShallow).
  * Trả về danh sách habit chưa archive kèm dữ liệu dẫn xuất.
- */
+ /
 export function selectTodayHabits(state) {
   const today = todayKey();
   const weekStart = getWeekStartKey();
@@ -84,7 +84,7 @@ export function selectTodayHabits(state) {
   return result.sort((a, b) => b.streak - a.streak);
 }
 
-/** Habit kế tiếp trong chuỗi (habit stacking) đang chưa được check-in. */
+/* Habit kế tiếp trong chuỗi (habit stacking) đang chưa được check-in. /
 export function selectNextChainHabit(state, habitId) {
   return (
     selectTodayHabits(state).find(
@@ -96,7 +96,7 @@ export function selectNextChainHabit(state, habitId) {
   );
 }
 
-/** Gom các action (tham chiếu luôn ổn định) để subscribe 1 lần. */
+/* Gom các action (tham chiếu luôn ổn định) để subscribe 1 lần. */
 export function selectHabitActions(state) {
   return {
     addHabit: state.addHabit,
@@ -115,12 +115,27 @@ export function selectHabitActions(state) {
   };
 }
 
-// ===== VALIDATION (dữ liệu import từ file ngoài) =====
+// ===== VALIDATION (dữ liệu import từ file ngoài / localStorage) =====
 const isValidHabit = (habit) =>
-  habit && typeof habit === 'object' && typeof habit.id === 'string' && habit.id;
+  habit &&
+  typeof habit === 'object' &&
+  typeof habit.id === 'string' &&
+  habit.id;
 
 const isValidDateKey = (value) =>
   typeof value === 'string' && !Number.isNaN(Date.parse(value));
+
+function sanitizeHabits(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const h of raw) {
+    if (!isValidHabit(h) || seen.has(h.id)) continue;
+    seen.add(h.id);
+    out.push(h);
+  }
+  return out;
+}
 
 function sanitizeCheckIns(raw) {
   const checkIns = {};
@@ -140,7 +155,8 @@ function sanitizeTwoMinuteUsage(raw) {
 
   for (const [habitId, value] of Object.entries(raw)) {
     if (!value || typeof value !== 'object') continue;
-    if (typeof value.weekStart !== 'string' || !Number.isFinite(value.count)) continue;
+    if (typeof value.weekStart !== 'string' || !Number.isFinite(value.count))
+      continue;
     usage[habitId] = { weekStart: value.weekStart, count: value.count };
   }
   return usage;
@@ -159,7 +175,7 @@ export const useHabitStore = create(
       // ===== ACTIONS =====
       addHabit: (habit) => {
         const newHabit = {
-          id: `habit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: habit-${Date.now()}-${Math.random().toString(36).slice(2, 7)},
           createdAt: todayKey(),
           freezeAvailable: 1,
           archivedAt: null,
@@ -167,11 +183,13 @@ export const useHabitStore = create(
           stackAfter: null,
           ...habit,
         };
+        // Cache theo id nên add không cần clear, nhưng clear cho chắc để
+        // tránh trường hợp id trùng bất ngờ.
+        derivedCache.delete(newHabit.id);
         set((state) => ({ habits: [...state.habits, newHabit] }));
         return newHabit.id;
       },
 
-      // ✏️ EDIT
       updateHabit: (id, patch) =>
         set((state) => ({
           habits: state.habits.map((h) =>
@@ -179,7 +197,6 @@ export const useHabitStore = create(
           ),
         })),
 
-      // 🗄️ ARCHIVE
       archiveHabit: (id) =>
         set((state) => ({
           habits: state.habits.map((h) =>
@@ -187,7 +204,6 @@ export const useHabitStore = create(
           ),
         })),
 
-      // ♻️ UNARCHIVE
       unarchiveHabit: (id) =>
         set((state) => ({
           habits: state.habits.map((h) =>
@@ -195,7 +211,6 @@ export const useHabitStore = create(
           ),
         })),
 
-      // 🗑️ DELETE
       deleteHabit: (id) =>
         set((state) => {
           const nextCheckIns = { ...state.checkIns };
@@ -210,7 +225,6 @@ export const useHabitStore = create(
           };
         }),
 
-      // ✅ CHECK-IN
       checkIn: (habitId, date) => {
         const d = date || todayKey();
         set((state) => {
@@ -225,7 +239,6 @@ export const useHabitStore = create(
         });
       },
 
-      // ⏱️ 2-MINUTE CHECK-IN (có tracking + giới hạn)
       markTwoMinuteCheckIn: (habitId) => {
         if (!get().canUseTwoMinute(habitId)) return false;
 
@@ -254,7 +267,6 @@ export const useHabitStore = create(
         return true;
       },
 
-      // ↩️ UNDO
       undoCheckIn: (habitId, date) => {
         const d = date || todayKey();
         set((state) => {
@@ -269,7 +281,6 @@ export const useHabitStore = create(
         });
       },
 
-      // 🧊 USE FREEZE
       applyFreeze: (habitId) => {
         const habit = get().habits.find((h) => h.id === habitId);
         if (!habit || (habit.freezeAvailable || 0) <= 0) return false;
@@ -292,7 +303,6 @@ export const useHabitStore = create(
         return true;
       },
 
-      // 🔄 RESET MONTHLY FREEZE
       resetMonthlyFreeze: () => {
         const currentMonth = getMonthKey(todayKey());
         const lastMonth = get().lastOpenDate
@@ -308,7 +318,6 @@ export const useHabitStore = create(
         }));
       },
 
-      // 📤 EXPORT
       exportData: () => {
         const { habits, checkIns, twoMinuteUsage, lastOpenDate } = get();
         return JSON.stringify(
@@ -325,7 +334,6 @@ export const useHabitStore = create(
         );
       },
 
-      // 📥 IMPORT
       importData: (jsonString) => {
         try {
           const data = JSON.parse(jsonString);
@@ -333,7 +341,7 @@ export const useHabitStore = create(
             return { success: false, error: 'Định dạng không hợp lệ' };
           }
 
-          const habits = data.habits.filter(isValidHabit);
+          const habits = sanitizeHabits(data.habits);
           clearDerivedCache();
           set({
             habits,
@@ -348,7 +356,6 @@ export const useHabitStore = create(
         }
       },
 
-      // ⏱️ TWO-MINUTE USAGE
       canUseTwoMinute: (habitId) => {
         const habit = get().habits.find((h) => h.id === habitId);
         if (!habit?.twoMinuteMode) return false;
@@ -373,6 +380,25 @@ export const useHabitStore = create(
           return { ...persistedState, twoMinuteUsage: {} };
         }
         return persistedState;
+      },
+      // Sanitize dữ liệu đọc từ localStorage: nếu file bị hỏng/thiếu field,
+      // tránh crash khi render. Cache dẫn xuất cũng phải clear vì habit/dates
+      // có thể đã thay đổi tham chiếu.
+      merge: (persistedState, currentState) => {
+        const p = persistedState || {};
+        clearDerivedCache();
+        return {
+          ...currentState,
+          habits: sanitizeHabits(p.habits),
+          checkIns: sanitizeCheckIns(p.checkIns),
+          twoMinuteUsage: sanitizeTwoMinuteUsage(p.twoMinuteUsage),
+          lastOpenDate:
+            typeof p.lastOpenDate === 'string' ? p.lastOpenDate : null,
+        };
+      },
+      onRehydrateStorage: () => () => {
+        // Cache có thể chứa tham chiếu object từ lần chạy trước (nếu hot reload).
+        clearDerivedCache();
       },
     }
   )
