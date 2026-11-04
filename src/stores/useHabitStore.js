@@ -175,7 +175,7 @@ export const useHabitStore = create(
       // ===== ACTIONS =====
       addHabit: (habit) => {
         const newHabit = {
-          id: habit-${Date.now()}-${Math.random().toString(36).slice(2, 7)},
+          id: `habit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           createdAt: todayKey(),
           freezeAvailable: 1,
           archivedAt: null,

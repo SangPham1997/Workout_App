@@ -72,7 +72,6 @@ export function createSanityListInit({
         _fetchedFromSanity: true,
       });
     } catch (err) {
-      console.error([${name}] fetch failed:, err);
       set({
         error: err,
         loading: false,
