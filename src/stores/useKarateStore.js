@@ -24,6 +24,7 @@ export const useKarateStore = create(
 
       _isFetching: false,
       _fetchedFromSanity: false,
+      _isRefreshing: false,
 
       initFromSanity: async (options = {}) => {
         const { force = false } = options;
@@ -32,7 +33,13 @@ export const useKarateStore = create(
         if (current._isFetching) return;
         if (!force && current._fetchedFromSanity) return;
 
-        set({ loading: true, error: null, _isFetching: true });
+        const isInitialLoad = !current._fetchedFromSanity;
+        set({
+          loading: isInitialLoad,
+          _isRefreshing: !isInitialLoad,
+          error: null,
+          _isFetching: true,
+        });
 
         try {
           const client = force ? freshClient : sanityClient;
@@ -56,13 +63,14 @@ export const useKarateStore = create(
               ? current.selectedId
               : adapted[0]?.id ?? null,
             loading: false,
+            _isRefreshing: false,
             error: null,
             _isFetching: false,
             _fetchedFromSanity: true,
           });
         } catch (err) {
           console.error('[useKarateStore] fetch failed:', err);
-          set({ error: err, loading: false, _isFetching: false });
+          set({ error: err, loading: false, _isRefreshing: false, _isFetching: false });
         }
       },
 

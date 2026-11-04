@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useKarateStore } from '../stores/useKarateStore';
 import { KARATE_TRACKS } from '../data/karate';
@@ -31,7 +31,6 @@ export default function KaratePage() {
   const {
     sessions,
     selectedId,
-    selectedSession,
     selectSession,
     completedIds,
     toggleComplete,
@@ -42,8 +41,6 @@ export default function KaratePage() {
     useShallow((state) => ({
       sessions: state.sessions,
       selectedId: state.selectedId,
-      selectedSession:
-        state.sessions.find((session) => session.id === state.selectedId) ?? null,
       selectSession: state.selectSession,
       completedIds: state.completedIds,
       toggleComplete: state.toggleComplete,
@@ -52,6 +49,19 @@ export default function KaratePage() {
       lastPracticedAt: state.lastPracticedAt,
     }))
   );
+
+  // ⚡ FIX: Memoize selectedSession — giữ reference ổn định khi sessions refresh
+  // Không remount KarateDetail khi data update nhưng session không đổi
+  const selectedSessionRef = useRef(null);
+  const selectedSession = useMemo(() => {
+    if (!selectedId) return null;
+    const found = sessions.find((s) => s.id === selectedId) ?? null;
+    if (selectedSessionRef.current?.id === selectedId && found) {
+      return selectedSessionRef.current;
+    }
+    selectedSessionRef.current = found;
+    return found;
+  }, [sessions, selectedId]);
 
   const [levelFilter, setLevelFilter] = useState('all');
 

@@ -28,7 +28,8 @@ export const useSpineBarStore = createProgramStore({
     if (current._isFetching) return;
     if (!force && current._fetchedFromSanity) return;
 
-    set({ loading: true, error: null, _isFetching: true });
+    set({ loading: true,
+      _isRefreshing: false, error: null, _isFetching: true });
 
     try {
       const client = force ? freshClient : sanityClient;
@@ -53,13 +54,14 @@ export const useSpineBarStore = createProgramStore({
             ? current.selectedId
             : newProgram.items[0]?.id ?? null,
         loading: false,
+        _isRefreshing: false,
         error: null,
         _isFetching: false,
         _fetchedFromSanity: true,
       });
     } catch (err) {
       console.error('[useSpineBarStore] fetch failed:', err);
-      set({ error: err, loading: false, _isFetching: false });
+      set({ error: err, loading: false, _isRefreshing: false, _isFetching: false });
     }
   },
 });

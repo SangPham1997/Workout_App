@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -128,11 +128,14 @@ export default function SpineBarPage() {
   );
 
   const { loadSession } = timer;
+  // ⚡ FIX: Guard by ID — không reset timer khi data refresh
+  const lastLoadedIdRef = useRef(null);
   useEffect(() => {
-    if (selected) {
-      debug('loadSession:', selected.id);
-      loadSession(selected);
-    }
+    if (!selected) return;
+    if (lastLoadedIdRef.current === selected.id) return;
+    lastLoadedIdRef.current = selected.id;
+    debug('loadSession:', selected.id);
+    loadSession(selected);
   }, [selected, loadSession]);
 
   // ===== HANDLERS =====
