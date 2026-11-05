@@ -29,10 +29,10 @@ function getTwoMinuteUsageCount(usage, weekStart) {
 /**
  * Selector thuần (dùng trực tiếp với zustand + useShallow).
  * Trả về danh sách habit chưa archive kèm dữ liệu dẫn xuất.
- /
+ */
 export function selectTodayHabits(state) {
   const today = todayKey();
-  const weekStart = getWeekStartKey();
+  const weekStart = getWeekStartKey(today);
   const yesterday = addDaysKey(today, -1);
   const result = [];
 
@@ -45,7 +45,7 @@ export function selectTodayHabits(state) {
 
     if (
       cached &&
-      cached.habit === habit &&
+      cached.habitId === habit.id &&
       cached.dates === dates &&
       cached.usage === usage &&
       cached.today === today
@@ -76,7 +76,7 @@ export function selectTodayHabits(state) {
       ),
     };
 
-    derivedCache.set(habit.id, { habit, dates, usage, today, value });
+    derivedCache.set(habit.id, { habitId: habit.id, dates, usage, today, value });
     result.push(value);
   }
 
@@ -84,7 +84,7 @@ export function selectTodayHabits(state) {
   return result.sort((a, b) => b.streak - a.streak);
 }
 
-/* Habit kế tiếp trong chuỗi (habit stacking) đang chưa được check-in. /
+/** Habit kế tiếp trong chuỗi (habit stacking) đang chưa được check-in. */
 export function selectNextChainHabit(state, habitId) {
   return (
     selectTodayHabits(state).find(
@@ -96,7 +96,7 @@ export function selectNextChainHabit(state, habitId) {
   );
 }
 
-/* Gom các action (tham chiếu luôn ổn định) để subscribe 1 lần. */
+/** Gom các action (tham chiếu luôn ổn định) để subscribe 1 lần. */
 export function selectHabitActions(state) {
   return {
     addHabit: state.addHabit,
@@ -304,7 +304,8 @@ export const useHabitStore = create(
       },
 
       resetMonthlyFreeze: () => {
-        const currentMonth = getMonthKey(todayKey());
+        const today = todayKey();
+        const currentMonth = getMonthKey(today);
         const lastMonth = get().lastOpenDate
           ? getMonthKey(get().lastOpenDate)
           : null;
@@ -314,7 +315,7 @@ export const useHabitStore = create(
           habits: state.habits.map((h) =>
             h.freezeAvailable === 1 ? h : { ...h, freezeAvailable: 1 }
           ),
-          lastOpenDate: todayKey(),
+          lastOpenDate: today,
         }));
       },
 

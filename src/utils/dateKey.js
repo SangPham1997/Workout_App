@@ -40,11 +40,17 @@ export function daysBetweenKeys(a, b) {
   return Math.round((parseDateKey(b) - parseDateKey(a)) / MS_PER_DAY);
 }
 
+/** Chuyển string/Date -> Date object an toàn. */
+function toDate(input) {
+  return input instanceof Date ? input : parseDateKey(input);
+}
+
 /** Key của thứ Hai đầu tuần chứa `date` (tuần bắt đầu thứ 2). */
 export function getWeekStartKey(date = new Date()) {
-  const day = date.getDay();
+  const d = toDate(date);
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + diff);
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diff);
   return toDateKey(monday);
 }
 

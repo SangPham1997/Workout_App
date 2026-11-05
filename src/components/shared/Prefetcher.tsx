@@ -4,7 +4,7 @@ import { useKarateStore } from "../../stores/useKarateStore";
 import { useSpineBarStore } from "../../stores/useSpineBarStore";
 import { useTimerStore } from "../../stores/useTimerStore";
 
-const POLL_INTERVAL_MS = 3 * 60 * 1000;
+const POLL_INTERVAL_MS = 10 * 60 * 1000; // 10 phút
 const VISIBILITY_DEBOUNCE_MS = 500;
 
 export function Prefetcher() {

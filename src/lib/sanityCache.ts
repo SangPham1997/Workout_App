@@ -13,6 +13,7 @@ type CacheEntry<T> = {
 }
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000 // 5 phút
+const PROMISE_TIMEOUT_MS = 20 * 1000  // 20s
 const cache = new Map<string, CacheEntry<unknown>>()
 
 const makeKey = (query: string, params?: Record<string, unknown>) =>
@@ -45,7 +46,12 @@ export async function cachedFetch<T = unknown>(
   const hasStale = entry?.data !== undefined
   const staleData = entry?.data as T | undefined
 
-  const fetcher = client.fetch<T>(query, params).then((data) => {
+  const fetcher = Promise.race([
+    client.fetch<T>(query, params),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Fetch timeout ${PROMISE_TIMEOUT_MS}ms`)), PROMISE_TIMEOUT_MS)
+    ),
+  ]).then((data) => {
     cache.set(key, { data, timestamp: Date.now() })
     if (import.meta.env.DEV) console.debug('[cache] fetched', key.slice(0, 60))
     return data
