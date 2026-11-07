@@ -1,4 +1,7 @@
 export interface SanityExercise {
+}
+import { getVideoEmbedUrl } from '../../utils/getVideoEmbedUrl';
+export interface SanityExercise {
   _id: string
   name: string
   subName?: string
@@ -38,6 +41,7 @@ export function adaptExercise(doc: SanityExercise) {
     rest: doc.rest ?? 30,
     guide: doc.guide,
     videoUrl: doc.videoUrl,
+    videoEmbedUrl: getVideoEmbedUrl(doc.videoUrl),
     week: doc.week,
     level: doc.level,
     equipment: doc.equipment,

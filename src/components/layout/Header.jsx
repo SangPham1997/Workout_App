@@ -108,7 +108,7 @@ export default memo(function Header() {
           aria-label="Trang chủ"
         >
           <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg md:text-xl group-hover:bg-emerald-500/30 transition">
-            <i className="fa-solid fa-person"></i>
+            <i className="fa-solid fa-dumbbell"></i>
           </div>
           <div className="block">
             <h1 className="text-base md:text-lg font-bold text-white tracking-tight leading-tight">

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, memo } from 'react';
-import { getVideoEmbedUrl } from '../shared/getVideoEmbedUrl';
+import { getVideoEmbedUrl } from '../../utils/getVideoEmbedUrl';
 import KarateSessionTimeline from './KarateSessionTimeline';
 import TechniqueChips from './TechniqueChips';
 

@@ -9,7 +9,7 @@ import { ErrorState } from '../components/shared/ErrorState';
 import TimerControl from '../components/timer/TimerControl';
 import ExerciseList from '../components/exercises/ExerciseList';
 import TechniqueGuide from '../components/simulator/TechniqueGuide';
-import { getVideoEmbedUrl } from '../components/shared/getVideoEmbedUrl';
+import { getVideoEmbedUrl } from '../utils/getVideoEmbedUrl';
 
 const EMBED_OPTIONS = {
   autoplay: false,

@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from 'react';
-import { getVideoEmbedUrl } from '../shared/getVideoEmbedUrl';
+import { getVideoEmbedUrl } from '../../utils/getVideoEmbedUrl';
 
 const LEVEL_LABELS = {
   1: 'Cấp 1 · nhẹ',

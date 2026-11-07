@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Suspense, lazy, useState, useCallback, useEffect, useMemo  } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   selectHabitActions,
@@ -10,8 +10,8 @@ import { playStreakSound, hapticCheckIn } from '../utils/habitFeedback';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HabitList from '../components/habits/HabitList';
-import AddHabitModal from '../components/habits/AddHabitModal';
-import EditHabitModal from '../components/habits/EditHabitModal';
+const AddHabitModal = lazy(() => import('../components/habits/AddHabitModal'));
+const EditHabitModal = lazy(() => import('../components/habits/EditHabitModal'));
 import StreakBadge from '../components/habits/StreakBadge';
 import CalendarHeatmap from '../components/habits/CalendarHeatmap';
 import HabitSelector from '../components/habits/HabitSelector';
@@ -299,17 +299,25 @@ export default function HabitsPage() {
 
       <Footer />
 
-      <AddHabitModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-      <EditHabitModal
-        isOpen={!!editingHabit}
-        habit={editingHabit}
-        allHabits={habits}
-        onSave={handleSaveEdit}
-        onClose={() => setEditingHabit(null)}
-      />
+      {isModalOpen && (
+        <Suspense fallback={null}>
+          <AddHabitModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+          />
+        </Suspense>
+      )}
+      {!!editingHabit && (
+        <Suspense fallback={null}>
+          <EditHabitModal
+                  isOpen={!!editingHabit}
+                  habit={editingHabit}
+                  allHabits={habits}
+                  onSave={handleSaveEdit}
+                  onClose={() => setEditingHabit(null)}
+                />
+        </Suspense>
+      )}
       <HabitChainPrompt
         isOpen={!!chainPrompt}
         fromHabit={chainPrompt?.fromHabit}
