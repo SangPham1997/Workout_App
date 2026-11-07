@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component {
             <p className="text-sm text-slate-400 mb-4">
               {this.state.error?.message || 'Unknown error'}
             </p>
-            <button
+            <button type="button"
               onClick={() => window.location.reload()}
               className="px-4 py-2 rounded-lg bg-emerald-500 text-white"
             >

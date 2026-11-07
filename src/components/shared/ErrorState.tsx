@@ -10,7 +10,7 @@ export function ErrorState({ message }: { message: string }) {
           <i className="fa-solid fa-triangle-exclamation text-4xl text-rose-400 mb-3" />
           <h2 className="text-xl font-bold text-white mb-2">Không tải được dữ liệu</h2>
           <p className="text-sm text-slate-400 mb-4">{message}</p>
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-bold"
           >

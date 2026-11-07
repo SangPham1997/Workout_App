@@ -26,11 +26,6 @@ export function Prefetcher() {
         timer.phase !== "idle" && timer.phase !== "completed";
       if (timerActive) {
         if (import.meta.env.DEV) {
-          console.debug(
-            "[Prefetcher] Skip force refresh — timer active:",
-            timer.phase,
-            "set", timer.currentSet + "/" + timer.totalSets
-          );
         }
         return Promise.resolve([]);
       }

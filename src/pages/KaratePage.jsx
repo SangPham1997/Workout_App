@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useKarateStore } from '../stores/useKarateStore';
 import { KARATE_TRACKS } from '../data/karate';
@@ -65,6 +65,10 @@ export default function KaratePage() {
 
   const [levelFilter, setLevelFilter] = useState('all');
 
+  // ⚡ React 19 perf: transition cho filter (non-blocking) + deferred value
+  const [isPending, startTransition] = useTransition();
+  const deferredLevelFilter = useDeferredValue(levelFilter);
+
   const activeTrackId = selectedSession?.track ?? KARATE_TRACKS[0].id;
   const activeTrack =
     KARATE_TRACKS.find((track) => track.id === activeTrackId) ?? KARATE_TRACKS[0];
@@ -76,10 +80,10 @@ export default function KaratePage() {
 
   const visibleSessions = useMemo(
     () =>
-      levelFilter === 'all'
+      deferredLevelFilter === 'all'
         ? trackSessions
-        : trackSessions.filter((session) => session.level === levelFilter),
-    [trackSessions, levelFilter]
+        : trackSessions.filter((session) => session.level === deferredLevelFilter),
+    [trackSessions, deferredLevelFilter]
   );
 
   const totalWeeks = useMemo(
@@ -225,7 +229,8 @@ export default function KaratePage() {
               <span className="sr-only">Lọc theo cấp độ</span>
               <select
                 value={levelFilter}
-                onChange={(event) => setLevelFilter(event.target.value)}
+                onChange={(event) => startTransition(() => setLevelFilter(event.target.value))}
+                aria-busy={isPending}
                 className="rounded-lg bg-slate-800/70 border border-slate-700/60 px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-rose-500/60"
               >
                 {LEVEL_OPTIONS.map((option) => (

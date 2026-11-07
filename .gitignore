@@ -22,3 +22,6 @@ Thumbs.db
 *.backup
 *.orig
 *.tsbuildinfo
+# added by apply-all
+reports/
+**/node_modules/

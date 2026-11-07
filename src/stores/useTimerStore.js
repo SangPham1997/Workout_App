@@ -57,10 +57,6 @@ export const useTimerStore = create((set, get) => ({
 
     if (sameSession && timerActive) {
       if (import.meta.env.DEV) {
-        console.debug(
-          '[useTimerStore] loadSession skipped — same session, timer active',
-          { id: session?.id, phase: current.phase }
-        );
       }
       return;
     }

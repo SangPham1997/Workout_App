@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useCallback, useEffect, useMemo, useRef, useState  } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -56,6 +56,10 @@ export default function SpineBarPage() {
   const [groupFilter, setGroupFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState(0);
   const [barFilter, setBarFilter] = useState('all');
+  // React 19: defer filter values để không block UI
+  const deferredGroupFilter = useDeferredValue(groupFilter);
+  const deferredLevelFilter = useDeferredValue(levelFilter);
+  const deferredBarFilter = useDeferredValue(barFilter);
 
   // ===== INIT FROM SANITY =====
   useEffect(() => {
@@ -84,9 +88,9 @@ export default function SpineBarPage() {
   const items = useMemo(() => {
     const source = program?.items ?? [];
     const filtered = source.filter((item) => {
-      if (groupFilter !== 'all' && item.groupId !== groupFilter) return false;
-      if (levelFilter !== 0 && item.level !== levelFilter) return false;
-      if (barFilter !== 'all' && item.bar !== barFilter) return false;
+      if (deferredGroupFilter !== 'all' && item.groupId !== deferredGroupFilter) return false;
+      if (deferredLevelFilter !== 0 && item.level !== deferredLevelFilter) return false;
+      if (deferredBarFilter !== 'all' && item.bar !== deferredBarFilter) return false;
       return true;
     });
     return filtered;

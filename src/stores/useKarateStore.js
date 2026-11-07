@@ -99,11 +99,12 @@ export const useKarateStore = create(
       },
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState || {}) };
-        const currentIds = new Set(merged.sessions.map((s) => s.id));
-        if (!currentIds.has(merged.selectedId)) merged.selectedId = firstId;
-        merged.completedIds = (merged.completedIds || []).filter((id) =>
-          currentIds.has(id)
-        );
+        // FIX[karate-check-undo]: không reset selectedId về firstId (static).
+        // Page effect tự chọn session đầu sau khi Sanity fetch xong.
+        // FIX[karate-check-undo]: KHÔNG filter completedIds tại merge().
+        // sessions lúc này là static fallback (id 'kt-XX'), còn completedIds
+        // persisted từ hôm qua là Sanity _id → filter cũ xoá sạch completion.
+        merged.completedIds = Array.isArray(merged.completedIds) ? merged.completedIds : [];
         merged.notes = merged.notes || {};
         merged.lastPracticedAt = merged.lastPracticedAt || {};
         merged.loading = currentState.loading;

@@ -216,21 +216,21 @@ function TimerControlInner({
 
         {/* ===== RIGHT: BUTTONS ===== */}
         <div className="flex gap-3 w-full xl:w-auto">
-          <button
+          <button type="button"
             onClick={onClick}
             className={`flex-1 xl:flex-none min-w-[160px] py-3 px-8 rounded-2xl font-bold transition transform active:scale-95 flex items-center justify-center gap-2 ${accentTheme.shadow} ${buttonClass}`}
           >
             <i className={`fa-solid ${buttonIcon} text-sm`} aria-hidden="true" />
             <span>{buttonLabel}</span>
           </button>
-          <button
+          <button type="button"
             onClick={onReset}
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
             aria-label="Đặt lại bộ đếm"
           >
             <i className="fa-solid fa-rotate-right" aria-hidden="true" />
           </button>
-          <button
+          <button type="button"
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 px-4 rounded-2xl transition border border-slate-700 hover:border-slate-600"
             onClick={onToggleSound}
             aria-label="Toggle sound"
