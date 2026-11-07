@@ -122,9 +122,7 @@ function HomePage() {
       <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
         <Header />
         <div className="flex-grow flex items-center justify-center">
-          <div className="text-slate-400 text-sm" role="status" aria-live="polite">
-            Đang tải bài tập...
-          </div>
+          <LoadingSpinner />
         </div>
         <Footer />
       </div>

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Toaster } from './components/ui/Toaster';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { LoadingSpinner } from './components/shared/LoadingSpinner';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Prefetcher } from './components/shared/Prefetcher';
 
@@ -10,24 +11,12 @@ const KaratePage = lazy(() => import('./pages/KaratePage'));
 const SpineBarPage = lazy(() => import('./pages/SpineBarPage'));
 const HabitsPage = lazy(() => import('./pages/HabitsPage'));
 
-function PageFallback() {
-  return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-slate-900 text-slate-400 text-sm"
-      role="status"
-      aria-live="polite"
-    >
-      Đang tải...
-    </div>
-  );
-}
-
 function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
       <Prefetcher />
-      <Suspense fallback={<PageFallback />}>
+      <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/karate" element={<KaratePage />} />

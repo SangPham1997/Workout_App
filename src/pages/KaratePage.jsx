@@ -152,7 +152,7 @@ export default function KaratePage() {
   if (error) return <ErrorState message={error?.message ?? 'Lỗi không xác định'} />;
 
   if (!selectedSession) {
-    return <div className="text-white p-4">Đang tải...</div>;
+    <LoadingSpinner />
   }
 
   return (
