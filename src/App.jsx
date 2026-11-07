@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { Toaster } from './components/ui/Toaster';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Prefetcher } from './components/shared/Prefetcher';
@@ -35,6 +36,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <Toaster />
     </BrowserRouter>
     </ErrorBoundary>
   );

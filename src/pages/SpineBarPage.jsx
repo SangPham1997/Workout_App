@@ -2,7 +2,6 @@ import { useDeferredValue, useCallback, useEffect, useMemo, useRef, useState  } 
 import { useShallow } from 'zustand/react/shallow';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ErrorState } from '../components/shared/ErrorState';
 import { EmptyState } from '../components/shared/EmptyState';
 import SafetyNotice from '../components/spine/SafetyNotice';
@@ -13,6 +12,7 @@ import SpineNote from '../components/spine/SpineNote';
 import TimerControl from '../components/timer/TimerControl';
 import { useSpineBarStore } from '../stores/useSpineBarStore';
 import { useTimerStore } from '../stores/useTimerStore';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 
 // DEBUG flag - bat/tat bang localStorage.setItem('DEBUG_SPINE', '1')
 const debug = (...args) => {

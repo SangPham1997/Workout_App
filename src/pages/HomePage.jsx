@@ -4,12 +4,12 @@ import { useExerciseStore } from '../stores/useExerciseStore';
 import { useTimerStore } from '../stores/useTimerStore';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ErrorState } from '../components/shared/ErrorState';
 import TimerControl from '../components/timer/TimerControl';
 import ExerciseList from '../components/exercises/ExerciseList';
 import TechniqueGuide from '../components/simulator/TechniqueGuide';
 import { getVideoEmbedUrl } from '../utils/getVideoEmbedUrl';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 
 const EMBED_OPTIONS = {
   autoplay: false,

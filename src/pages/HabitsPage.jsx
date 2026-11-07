@@ -19,6 +19,7 @@ import HabitChainPrompt from '../components/habits/HabitChainPrompt';
 import TwoMinuteTimer from '../components/habits/TwoMinuteTimer';
 import HabitStats from '../components/habits/HabitStats';
 import BackupMenu from '../components/habits/BackupMenu';
+import { toast } from 'sonner';
 
 const EMPTY_DATES = Object.freeze([]);
 
@@ -82,6 +83,7 @@ export default function HabitsPage() {
     const habit = selectTodayHabits(state).find((h) => h.id === habitId);
 
     state.checkIn(habitId);
+    toast.success('✅ Đã check-in', { id: 'habit-checkin' });
 
     // Streak milestone: chỉ phát sound, không toast
     if (habit && habit.streak > 0 && (habit.streak + 1) % 7 === 0) {
@@ -100,6 +102,7 @@ export default function HabitsPage() {
   const handleUndoCheckIn = useCallback(
     (habitId) => {
       undoCheckIn(habitId);
+    toast.info('↩ Đã hoàn tác', { id: 'habit-undo' });
     },
     [undoCheckIn]
   );
@@ -172,6 +175,7 @@ export default function HabitsPage() {
 
     const snapshot = twoMinuteHabit;
     markTwoMinuteCheckIn(snapshot.id);
+    toast.success('⏱ Hoàn thành 2 phút!', { id: 'habit-two-minute' });
     setTwoMinuteHabit(null);
 
     const next = selectNextChainHabit(useHabitStore.getState(), snapshot.id);

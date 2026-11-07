@@ -4,11 +4,12 @@ import { useKarateStore } from '../stores/useKarateStore';
 import { KARATE_TRACKS } from '../data/karate';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ErrorState } from '../components/shared/ErrorState';
 import KaratePathPicker from '../components/karate/KaratePathPicker';
 import KarateSessionList from '../components/karate/KarateSessionList';
 import KarateDetail from '../components/karate/KarateDetail';
+import { toast } from 'sonner';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 
 const LEVEL_OPTIONS = [
   { value: 'all', label: 'Mọi cấp độ' },
@@ -133,8 +134,12 @@ export default function KaratePage() {
   );
 
   const handleToggleComplete = useCallback(() => {
-    if (selectedId) toggleComplete(selectedId);
-  }, [toggleComplete, selectedId]);
+    if (!selectedId) return;
+    const wasCompleted = completedIds.includes(selectedId);
+    toggleComplete(selectedId);
+    if (wasCompleted) toast.info('↩ Bỏ hoàn thành', { id: 'karate-toggle' });
+    else toast.success('🎉 Hoàn thành buổi tập!', { id: 'karate-toggle' });
+  }, [toggleComplete, selectedId, completedIds]);
 
   const handleNoteChange = useCallback(
     (text) => {
