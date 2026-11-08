@@ -12,7 +12,8 @@
 //
 
 export function createSanityListInit({
-  name,
+  // eslint-disable-next-line no-unused-vars
+  name: _name,
   query,
   adapt,
   getId = (item) => item.id,

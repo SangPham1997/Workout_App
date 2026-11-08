@@ -57,6 +57,8 @@ export const useTimerStore = create((set, get) => ({
 
     if (sameSession && timerActive) {
       if (import.meta.env.DEV) {
+          // dev only — placeholder
+        
       }
       return;
     }
@@ -147,6 +149,7 @@ export const useTimerStore = create((set, get) => ({
     } = get();
     const now = Date.now();
     // Đồng bộ endsAt khi duration thay đổi (phòng config lệch)
+    // eslint-disable-next-line no-unused-vars
     const cfg = getSessionConfig(session);
 
     if (phase === 'work') {

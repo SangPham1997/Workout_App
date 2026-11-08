@@ -94,7 +94,7 @@ export default function SpineBarPage() {
       return true;
     });
     return filtered;
-  }, [program, groupFilter, levelFilter, barFilter]);
+  }, [program, deferredGroupFilter, deferredLevelFilter, deferredBarFilter]);
 
   const selected = useMemo(() => {
     const source = program?.items ?? [];

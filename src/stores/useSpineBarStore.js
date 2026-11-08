@@ -21,7 +21,8 @@ export const useSpineBarStore = createProgramStore({
   name: 'spine-bar-storage',
   program: spineBarProgram,
   version: 2,
-  initFromSanity: ({ set, get, initialProgram }) => async (options = {}) => {
+  // eslint-disable-next-line no-unused-vars
+  initFromSanity: ({ set, get, initialProgram: _initialProgram}) => async (options = {}) => {
     const { force = false } = options;
     const current = get();
 

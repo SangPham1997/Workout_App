@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useKarateStore } from '../stores/useKarateStore';
 import { KARATE_TRACKS } from '../data/karate';
@@ -51,17 +51,10 @@ export default function KaratePage() {
     }))
   );
 
-  // ⚡ FIX: Memoize selectedSession — giữ reference ổn định khi sessions refresh
-  // Không remount KarateDetail khi data update nhưng session không đổi
-  const selectedSessionRef = useRef(null);
+  // Stable reference: useMemo thường (không dùng ref — React 19 Rules of Hooks)
   const selectedSession = useMemo(() => {
     if (!selectedId) return null;
-    const found = sessions.find((s) => s.id === selectedId) ?? null;
-    if (selectedSessionRef.current?.id === selectedId && found) {
-      return selectedSessionRef.current;
-    }
-    selectedSessionRef.current = found;
-    return found;
+    return sessions.find((s) => s.id === selectedId) ?? null;
   }, [sessions, selectedId]);
 
   const [levelFilter, setLevelFilter] = useState('all');
@@ -151,9 +144,9 @@ export default function KaratePage() {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error?.message ?? 'Lỗi không xác định'} />;
 
-  if (!selectedSession) {
-    <LoadingSpinner />
-  }
+  if (!    selectedSession) {
+      return <LoadingSpinner />;
+    }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
