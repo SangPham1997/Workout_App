@@ -10,6 +10,9 @@ import KarateSessionList from '../components/karate/KarateSessionList';
 import KarateDetail from '../components/karate/KarateDetail';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import TimerSettingsButton from '../components/timer/TimerSettingsButton';
+import TimerControl from '../components/timer/TimerControl';
+import { useTimerStore } from '../stores/useTimerStore';
 
 const LEVEL_OPTIONS = [
   { value: 'all', label: 'Mọi cấp độ' },
@@ -58,6 +61,7 @@ export default function KaratePage() {
   }, [sessions, selectedId]);
 
   const [levelFilter, setLevelFilter] = useState('all');
+  const [showTimer, setShowTimer] = useState(false);
 
   // ⚡ React 19 perf: transition cho filter (non-blocking) + deferred value
   const [isPending, startTransition] = useTransition();
@@ -96,6 +100,26 @@ export default function KaratePage() {
   const isCurrentSessionCompleted = useMemo(
     () => (selectedId ? completedIds.includes(selectedId) : false),
     [completedIds, selectedId]
+  );
+
+  // ===== TIMER STORE =====
+  const timer = useTimerStore(
+    useShallow((state) => ({
+      phase: state.phase,
+      currentSet: state.currentSet,
+      totalSets: state.totalSets,
+      timeLeft: state.timeLeft,
+      workDuration: state.workDuration,
+      restDuration: state.restDuration,
+      isRunning: state.isRunning,
+      isCompleted: state.isCompleted,
+      startTimer: state.startTimer,
+      pauseTimer: state.pauseTimer,
+      fullReset: state.fullReset,
+      resetAndStart: state.resetAndStart,
+      toggleSound: state.toggleSound,
+      soundEnabled: state.soundEnabled,
+    }))
   );
 
   const currentSessionNote = useMemo(
@@ -144,7 +168,7 @@ export default function KaratePage() {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error?.message ?? 'Lỗi không xác định'} />;
 
-  if (!    selectedSession) {
+  if (!selectedSession) {
       return <LoadingSpinner />;
     }
 
@@ -212,9 +236,41 @@ export default function KaratePage() {
             isCompleted={isCurrentSessionCompleted}
             onToggleComplete={handleToggleComplete}
             note={currentSessionNote}
-            onNoteChange={handleNoteChange}
-            lastPracticedAt={lastPracticedAt?.[selectedId]}
+            onNoteChange={handleNoteChange}            lastPracticedAt={lastPracticedAt?.[selectedId]}
           />
+
+          {showTimer && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowTimer(false)}
+                aria-label="Ẩn timer"
+                title="Ẩn timer"
+                className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-slate-700/80 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center transition"
+              >
+                <i className="fa-solid fa-xmark" aria-hidden="true" />
+              </button>
+              <TimerControl
+                accent="rose"
+                phase={timer.phase}
+                currentSet={timer.currentSet}
+                totalSets={timer.totalSets}
+                timeLeft={timer.timeLeft}
+                workDuration={timer.workDuration}
+                restDuration={timer.restDuration}
+                mode={selectedSession.mode}
+                reps={selectedSession.reps}
+                isRunning={timer.isRunning}
+                isCompleted={timer.isCompleted}
+                onStart={timer.startTimer}
+                onPause={timer.pauseTimer}
+                onReset={timer.fullReset}
+                onToggleSound={timer.toggleSound}
+                soundEnabled={timer.soundEnabled}
+                onResetAndStart={timer.resetAndStart}
+              />
+            </div>
+          )}
         </section>
 
         <section className="lg:col-span-5 flex flex-col gap-3 min-w-0">
@@ -272,6 +328,8 @@ export default function KaratePage() {
         </section>
       </main>
       <Footer />
+    
+      <TimerSettingsButton session={selectedSession} onApply={() => setShowTimer(true)} />
     </div>
   );
 }

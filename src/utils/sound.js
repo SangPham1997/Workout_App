@@ -36,18 +36,18 @@ const playBeep = ({ frequency = 800, duration = 0.15, gain = 0.8, delay = 0 } = 
 
 /** Hết 1 hiệp work (→ sắp vào nghỉ). 1 tiếng cao ngắn. */
 export const beepSetComplete = () => {
-  playBeep({ frequency: 880, duration: 0.15, gain: 0.18 });
+  playBeep({ frequency: 880, duration: 0.15, gain: 0.8 });
 };
 
 /** Hết thời gian nghỉ (→ quay lại tập). 2 tiếng liên tiếp, tần số thấp hơn. */
 export const beepRestComplete = () => {
-  playBeep({ frequency: 660, duration: 0.12, gain: 0.18, delay: 0 });
-  playBeep({ frequency: 880, duration: 0.12, gain: 0.18, delay: 0.18 });
+  playBeep({ frequency: 660, duration: 0.12, gain: 0.8, delay: 0 });
+  playBeep({ frequency: 880, duration: 0.12, gain: 0.8, delay: 0.18 });
 };
 
 /** Hoàn thành toàn bộ bài. 3 tiếng tăng dần kiểu "success". */
 export const beepAllComplete = () => {
-  playBeep({ frequency: 660, duration: 0.12, gain: 0.2, delay: 0 });
-  playBeep({ frequency: 880, duration: 0.12, gain: 0.2, delay: 0.15 });
-  playBeep({ frequency: 1100, duration: 0.22, gain: 0.2, delay: 0.30 });
+  playBeep({ frequency: 660, duration: 0.12, gain: 0.8, delay: 0 });
+  playBeep({ frequency: 880, duration: 0.12, gain: 0.8, delay: 0.15 });
+  playBeep({ frequency: 1100, duration: 0.22, gain: 0.8, delay: 0.30 });
 };
