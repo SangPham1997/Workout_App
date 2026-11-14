@@ -2,7 +2,7 @@ import { createClient } from '@sanity/client'
 
 const projectId = import.meta.env.VITE_SANITY_PROJECT_ID
 const dataset = import.meta.env.VITE_SANITY_DATASET || 'production'
-const apiVersion = '2026-03-01'
+const apiVersion = '2026-01-01'
 
 if (!projectId) {
   throw new Error('❌ Missing VITE_SANITY_PROJECT_ID trong .env.local')

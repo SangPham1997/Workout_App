@@ -1,17 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { homeWorkoutProgram } from '../data/programs/homeWorkout'
 import { sanityClient, freshClient } from '../lib/sanity.client'
 import { EXERCISES_QUERY } from '../lib/queries/exercises'
 import { adaptExercise } from '../lib/adapters/exercise'
 import { cachedFetch } from '../lib/sanityCache'
 import { createSanityListInit } from './_helpers/createSanityInit'
 
-const initialExercises = Object.freeze([...homeWorkoutProgram.items])
-const firstId = initialExercises[0]?.id ?? null
+// Empty initial state — data luôn fetch từ Sanity
+const initialExercises = Object.freeze([])
+const firstId = null
 
-// Set<id> module-level, sync với state.exercises
-const exercisesById = new Set(initialExercises.map((ex) => ex.id))
+const exercisesById = new Set()
 
 function syncExercisesById(exercises) {
   exercisesById.clear()
@@ -35,7 +34,6 @@ export const useExerciseStore = create(
       _isRefreshing: false,
 
       initFromSanity: async (options = {}) => {
-        // Wrapper để rebuild Set sau khi fetch xong
         const result = await createSanityListInit({
           name: 'useExerciseStore',
           query: EXERCISES_QUERY,
@@ -48,15 +46,12 @@ export const useExerciseStore = create(
           set,
         })(options)
 
-        // FIX: rebuild Set từ state.exercises hiện tại (sau khi fetch)
         const { exercises } = get()
         if (exercises?.length) {
           syncExercisesById(exercises)
-          // Validate selectedId nếu không còn tồn tại
           const { selectedId } = get()
-          if (selectedId && !exercisesById.has(selectedId)) {
-            const newId = exercises[0]?.id ?? firstId
-            set({ selectedId: newId })
+          if (!selectedId || !exercisesById.has(selectedId)) {
+            set({ selectedId: exercises[0]?.id ?? null })
           }
         }
 
@@ -70,12 +65,7 @@ export const useExerciseStore = create(
 
       getSelectedExercise: () => {
         const { exercises, selectedId } = get()
-        return (
-          exercises.find((ex) => ex.id === selectedId) ??
-          exercises[0] ??
-          initialExercises[0] ??
-          null
-        )
+        return exercises.find((ex) => ex.id === selectedId) ?? exercises[0] ?? null
       },
 
       toggleWeekComplete: (weekNum) =>
@@ -87,22 +77,22 @@ export const useExerciseStore = create(
     }),
     {
       name: 'exercise-storage',
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         selectedId: state.selectedId,
         completedWeeks: state.completedWeeks,
       }),
       migrate: (persistedState, oldVersion) => {
         const state = persistedState ? { ...persistedState } : {}
-        if (oldVersion === 0 && Number.isInteger(state.selectedIndex)) {
-          state.selectedId = initialExercises[state.selectedIndex]?.id ?? firstId
+        // v0-v2: có selectedIndex hoặc selectedId từ static
+        if (oldVersion < 3) {
           delete state.selectedIndex
+          // Giữ selectedId — sẽ validate sau fetch
         }
         return state
       },
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState || {}) }
-        // KHÔNG validate selectedId ở đây — sẽ validate sau fetch
         merged.completedWeeks = merged.completedWeeks || []
         merged.loading = currentState.loading
         merged.error = currentState.error

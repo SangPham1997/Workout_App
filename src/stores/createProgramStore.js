@@ -132,11 +132,10 @@ export const createProgramStore = ({
         },
         merge: (persistedState, currentState) => {
           const merged = { ...currentState, ...(persistedState || {}) };
-          const currentIds = getItemIds(merged.program);
-          if (!currentIds.has(merged.selectedId)) merged.selectedId = firstId;
-          merged.completedIds = (merged.completedIds || []).filter((id) =>
-            currentIds.has(id)
-          );
+            // FIX[program-empty-initial]: không filter completedIds / reset selectedId
+            merged.completedIds = Array.isArray(merged.completedIds)
+              ? merged.completedIds
+              : [];
           merged.notes = merged.notes || {};
           merged.loading = currentState.loading;
           merged.error = currentState.error;

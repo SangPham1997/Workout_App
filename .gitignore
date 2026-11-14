@@ -25,3 +25,4 @@ Thumbs.db
 # added by apply-all
 reports/
 **/node_modules/
+scripts/

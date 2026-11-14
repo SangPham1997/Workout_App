@@ -52,7 +52,10 @@ export async function cachedFetch<T = unknown>(
       setTimeout(() => reject(new Error(`Fetch timeout ${PROMISE_TIMEOUT_MS}ms`)), PROMISE_TIMEOUT_MS)
     ),
   ]).then((data) => {
-    cache.set(key, { data, timestamp: Date.now() })
+    if (import.meta.env.DEV) {
+        console.log('[DIAG][cache] RESULT:', { isArray: Array.isArray(data), length: Array.isArray(data) ? data.length : null, keys: data && !Array.isArray(data) ? Object.keys(data).slice(0, 8) : null })
+      }
+      cache.set(key, { data, timestamp: Date.now() })
     if (import.meta.env.DEV) console.debug('[cache] fetched', key.slice(0, 60))
     return data
   }).catch((err) => {
