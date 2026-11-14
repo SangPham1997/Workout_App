@@ -13,7 +13,7 @@ const getCtx = () => {
   return audioCtx;
 };
 
-const playBeep = ({ frequency = 800, duration = 0.15, gain = 0.15, delay = 0 } = {}) => {
+const playBeep = ({ frequency = 800, duration = 0.15, gain = 0.8, delay = 0 } = {}) => {
   const ctx = getCtx();
   if (!ctx) return;
 
