@@ -1,10 +1,11 @@
-export interface SanityExercise {
-}
-import { getVideoEmbedUrl } from '../../utils/getVideoEmbedUrl';
+import { getVideoEmbedUrl } from '../../utils/getVideoEmbedUrl'
+
 export interface SanityExercise {
   _id: string
+  _type?: 'homeExercise' | 'spineExercise' | 'exercise'
   name: string
   subName?: string
+  target?: string
   category?: string
   mode?: 'time' | 'reps'
   duration?: number
@@ -28,11 +29,16 @@ export interface SanityExercise {
 }
 
 export function adaptExercise(doc: SanityExercise) {
+  // Safe: nếu _id undefined (defensive) → fallback về name/unknown
+  const rawId = doc._id ?? (doc.name ? `name-${doc.name}` : 'unknown')
+  // Strip prefix nếu có; nếu UUID (không prefix) → giữ nguyên
+  const id = rawId.replace(/^(ex-|spine-ex-)/, '')
+
   return {
-    id: doc._id.replace(/^(ex-|spine-ex-)/, ''),
+    id,
     name: doc.name,
     subName: doc.subName,
-    target: doc.subName,
+    target: doc.target ?? doc.subName ?? doc.name,
     category: doc.category,
     mode: doc.mode ?? 'reps',
     duration: doc.duration,
@@ -54,6 +60,9 @@ export function adaptExercise(doc: SanityExercise) {
     groupId: doc.groupId,
     type: doc.type,
     svg: doc.svg,
-    _sanityId: doc._id,
+    _sanityId: rawId,
+    _type: doc._type,
   }
 }
+
+export default adaptExercise
