@@ -7,7 +7,6 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
   const [duration, setDuration] = useState(30);
   const [reps, setReps] = useState(10);
   const [rest, setRest] = useState(30);
-
   const phase = useTimerStore((s) => s.phase);
   const loadSession = useTimerStore((s) => s.loadSession);
   const fullReset = useTimerStore((s) => s.fullReset);
@@ -15,14 +14,15 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
   // Mở modal → load giá trị hiện tại của session
   const handleOpen = useCallback(() => {
     setDuration(session?.duration ?? 30);
-    setReps(session?.reps ?? 10);
+    // FIX: Ưu tiên lấy sets, nếu không có thì lấy reps, fallback về 10
+    setReps(session?.sets ?? session?.reps ?? 10);
     setRest(session?.rest ?? 30);
     setOpen(true);
   }, [session]);
 
   const handleClose = useCallback(() => setOpen(false), []);
 
-  // Escape để đóng
+  // Escape để đóng modal
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
@@ -34,18 +34,19 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
     const d = Math.max(1, Number(duration) || 30);
     const r = Math.max(1, Number(reps) || 10);
     const s = Math.max(1, Number(rest) || 30);
-
+    
     if (!session) {
       toast.warning('Chưa chọn bài tập', { id: 'timer-settings' });
       setOpen(false);
       return;
     }
-
+    
     try {
       // Reset nếu timer đang chạy để áp dụng config mới
       if (phase !== 'idle' && phase !== 'completed') {
         fullReset();
       }
+      
       // Load session với overrides — giữ nguyên mọi field khác
       loadSession({
         ...session,
@@ -53,9 +54,9 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
         reps: r,
         rest: s,
         mode: session.mode ?? 'time',
-        sets: session.sets ?? 3,
+        sets: r, // FIX: Dùng giá trị r (reps) người dùng nhập thay vì cứng là 3
       });
-
+      
       // Trigger parent to show TimerControl
       if (typeof onApply === 'function') onApply();
       toast.success('Đã áp dụng cài đặt timer', { id: 'timer-settings' });
@@ -68,13 +69,13 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
 
   return (
     <>
-      {/* Fixed button — bottom left */}
+      {/* Fixed button — bottom left (Đã đổi sang màu rose/đỏ) */}
       <button
         type="button"
         onClick={handleOpen}
         aria-label="Cài đặt timer"
         title="Cài đặt timer (duration / reps / rest)"
-        className="fixed bottom-4 left-6 z-40 w-14 h-14 rounded-full bg-sky-500 hover:bg-sky-400 text-white shadow-2xl shadow-sky-500/40 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-4 left-6 z-40 w-14 h-14 rounded-full bg-rose-500 hover:bg-rose-400 text-white shadow-2xl shadow-rose-500/40 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
       >
         <i className="fa-solid fa-clock text-xl" aria-hidden="true" />
       </button>
@@ -94,7 +95,7 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
           >
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-clock text-sky-400" aria-hidden="true" />
+                <i className="fa-solid fa-clock text-rose-400" aria-hidden="true" />
                 Cài đặt Timer
               </h2>
               <button
@@ -106,7 +107,6 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
                 <i className="fa-solid fa-xmark" aria-hidden="true" />
               </button>
             </div>
-
             <p className="text-[11px] text-slate-400 -mt-2">
               {session?.name ? `Bài: ${session.name}` : 'Chưa chọn bài'}
             </p>
@@ -121,23 +121,21 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
                   min={1}
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
                 />
               </label>
-
               <label className="block">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  2. Reps (số lần)
+                  2. Reps / Sets (số lần)
                 </span>
                 <input
                   type="number"
                   min={1}
                   value={reps}
                   onChange={(e) => setReps(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
                 />
               </label>
-
               <label className="block">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   3. Rest (giây)
@@ -147,7 +145,7 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
                   min={1}
                   value={rest}
                   onChange={(e) => setRest(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
                 />
               </label>
             </div>
@@ -163,7 +161,7 @@ export default memo(function TimerSettingsButton({ session, onApply }) {
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex-1 rounded-lg bg-sky-500 hover:bg-sky-400 px-4 py-2 text-sm font-bold text-white transition"
+                className="flex-1 rounded-lg bg-rose-500 hover:bg-rose-400 px-4 py-2 text-sm font-bold text-white transition"
               >
                 Áp dụng
               </button>
